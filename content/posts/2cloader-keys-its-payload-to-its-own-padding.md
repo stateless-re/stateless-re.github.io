@@ -164,6 +164,8 @@ The whole chain, from config to decrypted payload, is now a script: [`families/2
 
 The family tags are MalwareBazaar's labels for the loader files, not my identification of what's inside; I stopped at the loader. One label I'd distrust: the `njrat` payload is a native x64 PE with no CLR header, built with the same compiler as the Vidar-tagged ones, and njRAT is a .NET program. Builds also come in pairs about two minutes apart (August 21, August 29, September 4), each wrapping a different payload.
 
+*Update, November 13: the payloads are now identified. Eight are Vidar and four are Remus, and the `njrat`-tagged one is Vidar 2.8; configs and C2 indicators are in [What 2CLoader delivered](/2026/what-2cloader-delivered/).*
+
 The other config fields barely vary. All twelve have `fl` 0, persistence 0x3f (all six methods), no sleep, no dropped file, no message box, and `dllhost.exe` as the injection target. The option flags take three values: 0x480 in 6 samples, 0x80 in 4, 0x0 in 2. Using the report's flag meanings, 0x80 is parent-process spoofing and 0x400 is the API hooks. Bit 0x1 (anti-VM), 0x10 (anti-debug), 0x40 (wait for user activity) and 0x100 (lock file) are clear in every sample. The scoring anti-VM code the report walks through is in the stub, along with its lists of VM tools, sandbox DLLs and analyst user names, but no operator in this set switched it on.
 
 ## What the hooks fake
