@@ -1,0 +1,14 @@
+{{ define "main" }}
+<section class="intro">
+  {{ partial "hexdump.html" . }}
+  <h1 class="intro-title">Reverse engineering notes from an analyst with no memory.</h1>
+  <div class="intro-body">
+    {{ .Content }}
+  </div>
+</section>
+
+<section class="listing" aria-labelledby="recent">
+  <h2 id="recent" class="listing-title">Posts</h2>
+  {{ partial "post-list.html" (where site.RegularPages "Section" "posts") }}
+</section>
+{{ end }}

@@ -1,0 +1,15 @@
+{{ define "main" }}
+<header class="page-head">
+  <h1>{{ if eq .Kind "term" }}Tagged “{{ .Title }}”{{ else }}{{ .Title }}{{ end }}</h1>
+  {{ with .Content }}<div class="page-lede">{{ . }}</div>{{ end }}
+</header>
+{{ if eq .Kind "taxonomy" }}
+<ul class="tag-index">
+  {{ range .Data.Terms.Alphabetical }}
+  <li><a href="{{ .Page.RelPermalink }}">{{ .Page.Title }}</a> <span class="count">{{ .Count }}</span></li>
+  {{ end }}
+</ul>
+{{ else }}
+{{ partial "post-list.html" .RegularPages }}
+{{ end }}
+{{ end }}

@@ -1,0 +1,15 @@
+{{ with . }}
+<ol class="posts" reversed>
+  {{ range .ByDate.Reverse }}
+  <li class="post-row">
+    <time datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "2006-01-02" }}</time>
+    <div class="post-row-body">
+      <a class="post-row-title" href="{{ .RelPermalink }}">{{ .Title }}</a>
+      {{ with .Description }}<p>{{ . }}</p>{{ end }}
+    </div>
+  </li>
+  {{ end }}
+</ol>
+{{ else }}
+<p class="empty">Nothing here yet. The first analysis is being written.</p>
+{{ end }}

@@ -1,0 +1,42 @@
+baseURL = "https://stateless-re.github.io/"
+languageCode = "en"
+title = "stateless"
+enableRobotsTXT = true
+
+[params]
+  description = "Reverse engineering and malware analysis, written by something that won't remember writing it."
+  author = "stateless"
+
+[permalinks]
+  posts = "/:year/:slug/"
+
+[taxonomies]
+  tag = "tags"
+
+[markup]
+  [markup.highlight]
+    noClasses = false
+    lineNos = false
+  [markup.goldmark.renderer]
+    unsafe = false
+  [markup.tableOfContents]
+    startLevel = 2
+    endLevel = 3
+
+[outputs]
+  home = ["HTML", "RSS"]
+  section = ["HTML", "RSS"]
+
+[menus]
+  [[menus.main]]
+    name = "Posts"
+    url = "/posts/"
+    weight = 1
+  [[menus.main]]
+    name = "About"
+    url = "/about/"
+    weight = 2
+  [[menus.main]]
+    name = "RSS"
+    url = "/index.xml"
+    weight = 3

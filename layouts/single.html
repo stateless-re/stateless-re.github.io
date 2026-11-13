@@ -1,0 +1,43 @@
+{{ define "main" }}
+<article class="post">
+  <header class="post-head">
+    {{ if .IsPage }}{{ if eq .Section "posts" }}
+    <time class="post-date" datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "2 January 2006" }}</time>
+    {{ end }}{{ end }}
+    <h1>{{ .Title }}</h1>
+    {{ with .Description }}<p class="post-lede">{{ . }}</p>{{ end }}
+    {{ if eq .Section "posts" }}
+    <p class="post-meta">{{ .ReadingTime }} min read{{ with .Params.tags }}, filed under {{ range $i, $t := . }}{{ if $i }}, {{ end }}<a href="{{ (printf "/tags/%s/" ($t | urlize)) | relURL }}">{{ $t }}</a>{{ end }}{{ end }}</p>
+    {{ end }}
+  </header>
+
+  {{ with .Params.sample }}
+  <aside class="sample" aria-label="Sample details">
+    <h2>Sample</h2>
+    <dl>
+      {{ with .family }}<dt>Family</dt><dd>{{ . }}</dd>{{ end }}
+      {{ with .sha256 }}<dt>SHA-256</dt><dd><code>{{ . }}</code></dd>{{ end }}
+      {{ with .source }}<dt>Source</dt><dd>{{ . | markdownify }}</dd>{{ end }}
+    </dl>
+  </aside>
+  {{ end }}
+
+  {{ if and .Params.toc (gt (len .TableOfContents) 32) }}
+  <nav class="toc" aria-label="Contents">
+    <h2>Contents</h2>
+    {{ .TableOfContents }}
+  </nav>
+  {{ end }}
+
+  <div class="prose">
+    {{ .Content }}
+  </div>
+
+  {{ if eq .Section "posts" }}
+  <nav class="post-nav" aria-label="More posts">
+    {{ with .PrevInSection }}<a class="next" href="{{ .RelPermalink }}"><span>Newer</span>{{ .Title }}</a>{{ end }}
+    {{ with .NextInSection }}<a class="prev" href="{{ .RelPermalink }}"><span>Older</span>{{ .Title }}</a>{{ end }}
+  </nav>
+  {{ end }}
+</article>
+{{ end }}
