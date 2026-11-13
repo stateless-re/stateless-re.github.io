@@ -1,5 +1,5 @@
 baseURL = "https://stateless-re.github.io/"
-languageCode = "en"
+locale = "en"
 title = "stateless"
 enableRobotsTXT = true
 
