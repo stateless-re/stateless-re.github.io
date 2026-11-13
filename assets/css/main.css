@@ -1,4 +1,4 @@
-/* stateless: printed listing paper, blue-black ink, one highlighter. */
+/* stateless: listing paper, blue-black ink, one highlighter. */
 
 :root {
   --paper: #edefea;
@@ -6,7 +6,6 @@
   --ink: #1d2430;
   --ink-soft: #4b5563;
   --rule: #c6ccc3;
-  --band: #e1e9dd;          /* green-bar band in code listings */
   --mark: #f2e36b;          /* highlighter */
   --mark-ink: #1d2430;
   --literal: #1f5f6a;       /* strings, numbers in code */
@@ -28,7 +27,6 @@
     --ink: #dde1d9;
     --ink-soft: #9ba3ad;
     --rule: #2f363f;
-    --band: #1b251f;
     --mark: #e3d35a;
     --mark-ink: #161a20;
     --literal: #86bcc4;
@@ -434,7 +432,7 @@ main { padding-bottom: 5rem; }
 }
 .prose th { font-weight: 600; }
 
-/* ---------- code: green-bar listing paper ---------- */
+/* ---------- code ---------- */
 
 code, pre, kbd { font-family: var(--mono); font-feature-settings: "liga" 0, "calt" 0; }
 
@@ -447,40 +445,25 @@ code, pre, kbd { font-family: var(--mono); font-feature-settings: "liga" 0, "cal
   overflow-wrap: anywhere;
 }
 
-.prose pre,
-.prose .highlight pre {
+.prose pre {
   font-size: .78rem;
-  line-height: var(--code-lh);
-  padding: var(--code-lh) 1.25rem;
+  line-height: 1.6;
   margin: 0;
+  padding: 1rem 1.25rem;
   overflow-x: auto;
   tab-size: 4;
-  background-color: var(--paper-raised) !important;
-  background-image: repeating-linear-gradient(
-    to bottom,
-    transparent 0 var(--code-lh),
-    var(--band) var(--code-lh) calc(var(--code-lh) * 2)
-  );
-  background-origin: content-box;
-  background-clip: border-box;
-  background-attachment: local;
-  border-top: 1px solid var(--rule);
-  border-bottom: 1px solid var(--rule);
+  background: var(--paper-raised) !important;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
 }
 .prose .highlight { margin-top: 1.4em; }
 .prose .highlight + * { margin-top: 1.4em; }
-
-@media (min-width: 60rem) {
-  /* listings get a little more room than prose */
-  .prose pre, .prose .highlight { margin-right: -3rem; }
-}
 
 /* syntax: mostly ink, one colour for literals, muted comments */
 .chroma .c, .chroma .c1, .chroma .cm, .chroma .cs, .chroma .ch, .chroma .cp, .chroma .cpf { color: var(--comment); font-style: italic; }
 .chroma .k, .chroma .kd, .chroma .kn, .chroma .kr, .chroma .kc, .chroma .kp, .chroma .kt { font-weight: 600; }
 .chroma .s, .chroma .s1, .chroma .s2, .chroma .sb, .chroma .sc, .chroma .sd, .chroma .se, .chroma .sh, .chroma .si, .chroma .sx, .chroma .sr, .chroma .ss,
 .chroma .m, .chroma .mb, .chroma .mf, .chroma .mh, .chroma .mi, .chroma .il, .chroma .mo { color: var(--literal); }
-.chroma .nf, .chroma .fm { text-decoration: underline; text-decoration-color: var(--rule); text-underline-offset: .2em; }
 .chroma .err { color: inherit; background: none; }
 .chroma .hl { background: color-mix(in srgb, var(--mark) 45%, transparent); display: block; }
 .chroma .ln, .chroma .lnt { color: var(--comment); margin-right: 1em; user-select: none; }
