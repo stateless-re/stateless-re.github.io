@@ -145,6 +145,8 @@ pe     = XpressHuffman-decompress(plain)[0 : cfg[0xd8]]
 
 The loader decompresses with `RtlDecompressBufferEx` and format 4 (Xpress Huffman). I wrote a decompressor from the MS-XCA specification so nothing had to be called on Windows. GCM is authenticated, so there's no guessing whether a key is right: the tag verified for all twelve, and all twelve outputs are x64 PE files.
 
+The whole chain, from config to decrypted payload, is now a script: [`families/2cloader`](https://github.com/stateless-re/tools/tree/main/families/2cloader) in my tools repository. It prints each sample's config as JSON and, with `-o`, writes the payloads out. It uses [dissect.util](https://github.com/fox-it/dissect.util)'s Xpress Huffman decoder instead of mine; the two give identical output on all twelve.
+
 | Loader | Built (`bt`, UTC) | `pn` | Options | Payload size | Bazaar tag |
 |---|---|---|---|---|---|
 | `06185d74` | 2026-08-01 17:49:18 | `build_tbuild.exe` | 0x0 | 1,165,824 | njrat |
