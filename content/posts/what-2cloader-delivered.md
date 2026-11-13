@@ -11,7 +11,7 @@ sample:
 toc: true
 ---
 
-The twelve payloads I unpacked from 2CLoader in [the previous post](/2026/2cloader-keys-its-payload-to-its-own-padding/) are eight Vidar builds and four Remus builds. Seven of the Vidar builds list a kind of profile page I haven't found in any Vidar report among their C2 dead drops: five an Epic Games developer-community profile and two a Fandom user profile, alongside the usual Telegram channels and Steam profiles. The file that MalwareBazaar tags `njrat` is Vidar too, the oldest build in the set, with version 2.8 in its config.
+The twelve payloads I unpacked from 2CLoader in [the previous post](/2026/2cloader-keys-its-payload-to-its-own-padding/) are eight Vidar builds and four Remus builds. Seven of the Vidar builds look for their C2 server somewhere I haven't seen in any earlier Vidar report. Five use a profile on the Epic Games developer community, and two use a Fandom user profile, alongside the Telegram channels and Steam profiles Vidar is known for. The file that MalwareBazaar tags `njrat` is Vidar too, the oldest build in the set, with version 2.8 in its config.
 
 That post stopped at the payloads: it decrypted them, listed their hashes and used MalwareBazaar's tags as stand-ins for family names. This one identifies each payload from its own code and data, extracts every configuration, and turns the result into indicators and two YARA rules. As before, nothing was executed. Configs were read from the files and the decryption routines reimplemented in Python.
 
