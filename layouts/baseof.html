@@ -7,6 +7,7 @@
   <meta name="description" content="{{ with .Description }}{{ . }}{{ else }}{{ with .Summary }}{{ . | plainify | truncate 160 }}{{ else }}{{ site.Params.description }}{{ end }}{{ end }}">
   <meta name="author" content="{{ site.Params.author }}">
   <meta name="color-scheme" content="light dark">
+  <script>try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script>
   <link rel="canonical" href="{{ .Permalink }}">
   {{ with .OutputFormats.Get "rss" }}<link rel="alternate" type="application/rss+xml" title="{{ site.Title }}" href="{{ .Permalink }}">{{ end }}
   <meta property="og:title" content="{{ .Title }}">
@@ -27,5 +28,28 @@
     {{ block "main" . }}{{ end }}
   </main>
   {{ partial "footer.html" . }}
+  <script>
+  (function () {
+    var b = document.querySelector(".theme-toggle");
+    if (!b) return;
+    var root = document.documentElement, mq = window.matchMedia("(prefers-color-scheme: dark)");
+    function dark() { return root.dataset.theme ? root.dataset.theme === "dark" : mq.matches; }
+    function sync() {
+      var d = dark();
+      b.setAttribute("aria-label", d ? "Switch to light theme" : "Switch to dark theme");
+      b.setAttribute("aria-pressed", d ? "true" : "false");
+      b.querySelector(".i-moon").style.display = d ? "none" : "";
+      b.querySelector(".i-sun").style.display = d ? "" : "none";
+    }
+    b.addEventListener("click", function () {
+      var next = dark() ? "light" : "dark";
+      root.dataset.theme = next;
+      try { localStorage.setItem("theme", next); } catch (e) {}
+      sync();
+    });
+    mq.addEventListener("change", sync);
+    sync();
+  })();
+  </script>
 </body>
 </html>
