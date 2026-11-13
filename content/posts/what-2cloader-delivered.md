@@ -17,7 +17,7 @@ That post stopped at the payloads: it decrypted them, listed their hashes and us
 
 ## What I found
 
-- Eight payloads are native x64 Vidar with no import table. Their configs carry versions 2.8, 3.0, 3.1, 3.2 and 3.3, which rise with the loader build dates from August 1 to September 4, 2026. Together they point to 13 dead-drop accounts: five Telegram channels, four Steam profiles, three Epic Games developer profiles and one Fandom profile.
+- Eight payloads are native x64 Vidar with no import table. Their configs carry versions 2.8, 3.0, 3.1, 3.2 and 3.3, which rise with the loader build dates from August 1 to September 4, 2026. Together they point to 13 distinct dead-drop accounts: five Telegram channels, four Steam profiles, three Epic Games developer profiles and one Fandom profile. Builds share accounts, so the five builds that use Epic Games point to three profiles between them, and the two that use Fandom share one.
 - Two pairs of Vidar payloads are byte-identical except for 507 and 497 bytes in `.data`, where the config lives. The pair whose configs say 3.0 and 3.1 shares the same code, so the version string comes from the builder, not from a code change.
 - Gen Digital's public Vidar config extractor reads all eight configs correctly. Rapid7's earlier one finds nothing, because these builds use a 16-byte XOR key instead of the alphabet substitution it expects.
 - The four Remus payloads share one build tag, `03473d3f2d528ba787191417a6e1e5f0` (also the name of the semaphore they use as a run-once lock), and one Ethereum contract. Each carries three ChaCha20-encrypted C2 URLs; eight hosts in total, with `vexdico[.]shop:8539` in all four.
