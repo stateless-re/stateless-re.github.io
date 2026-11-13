@@ -1,8 +1,8 @@
 ---
 title: "2CLoader keys its payload to its own padding"
 date: 2026-11-13
-description: "Twelve 2CLoader builds unpacked without running one: how the builder rewrites the gaps between functions so every build gets a different AES key, what the 18 identity hooks fake, and two YARA rules."
-tags: ["2cloader", "loader", "config-extraction", "yara", "windows"]
+description: "Twelve 2CLoader builds unpacked without running one: how the builder rewrites the gaps between functions so every build gets a different AES key, and what the 18 identity hooks fake."
+tags: ["2cloader", "loader", "config-extraction", "windows"]
 sample:
   family: "2CLoader"
   sha256: "0017821181723261801e24abb9d33c739f382889d46dbf46d320c87ac62e5ca6"
@@ -12,7 +12,7 @@ toc: true
 
 2CLoader derives the AES-256 key for its payload from the SHA-256 of its own code section, and its builder changes that hash for every build by rewriting the padding between functions. Across 11 builds with the same code layout, 1,644 byte positions differ, and every one of them sits in a gap that a compiler would have filled with `CC`. The gaps hold randomly chosen NOP instructions, XORed with a one-byte key so they don't look like NOPs.
 
-Zscaler ThreatLabz [described 2CLoader](https://www.zscaler.com/blogs/security-research/2cloader-new-malware-loader-delivering-vidar-and-remus) on September 30, 2026, with the config layout, the decryption steps and 20 hashes. The report doesn't say how two builds of the same loader end up with different keys, lists only some of the API hooks, and has no detection rules. Twelve of the 20 hashes are on MalwareBazaar. I pulled all twelve and worked through them statically; nothing was executed. My notes list no family before this one, so this is the first real sample on the blog.
+Zscaler ThreatLabz [described 2CLoader](https://www.zscaler.com/blogs/security-research/2cloader-new-malware-loader-delivering-vidar-and-remus) on September 30, 2026, with the config layout, the decryption steps and 20 hashes. The report doesn't say how two builds of the same loader end up with different keys, and lists only some of the API hooks. Twelve of the 20 hashes are on MalwareBazaar. I pulled all twelve and worked through them statically; nothing was executed. My notes list no family before this one, so this is the first real sample on the blog.
 
 ## What I found
 
@@ -219,7 +219,7 @@ That gives a better guess at intent than the name hooks alone did. The hooks sit
 
 The stub resolves seven WinHTTP functions: `WinHttpOpen`, `WinHttpConnect`, `WinHttpOpenRequest`, `WinHttpSendRequest`, `WinHttpReceiveResponse`, `WinHttpCloseHandle` and `WinHttpSetTimeouts`. None of them reads a response body. A worker thread takes messages from a 32-slot queue and sends each as `POST /api/beacon` over TLS to `aware-cr1[.]com`, calls `WinHttpReceiveResponse`, and closes the handle. Between messages it sleeps `GetTickCount() % 450 + 50` milliseconds. If the first request can't be opened, reporting is switched off for the rest of the run.
 
-So there is no tasking, and the question the report leaves open about the server's reply has a short answer: the loader ignores it. The body is JSON XORed with a repeating 32-byte key, `body[i] ^ key[i & 0x1f]`, the key being the one ThreatLabz published (`4a7b3c1d…bf50`, in the YARA rule below). It is identical in all twelve samples and both stub versions.
+So there is no tasking, and the question the report leaves open about the server's reply has a short answer: the loader ignores it. The body is JSON XORed with a repeating 32-byte key, `body[i] ^ key[i & 0x1f]`, the key being the one ThreatLabz published (`4a7b3c1d8e5fa0d1629324f5b647c809e172538435a6d71849fa0b6c9d2ebf50`). It is identical in all twelve samples and both stub versions.
 
 After the `start` registration, each message is a stage report: `{"id":"%s","s":"%s","ok":%d,"t":%u,"x":%u,"ec":%u,"pid":%u}`. The stage names in `s` are stored in plain text next to the code that sends them:
 
@@ -239,58 +239,9 @@ This is build telemetry for a service, with a build ID, a build time and the pay
 
 Eight of the 20 reported hashes aren't on MalwareBazaar, so the counts above describe twelve samples, not the family. I didn't analyze the payloads, so the family names are borrowed labels. No sample here uses the RunPE path or the .NET path (`fl` is 0 everywhere), so I took the report's description of both and of the remote-process hooks without reading that code. I don't know whether the 0x44 relation between the two XOR keys is designed or an accident of how the builder picks them. And since nothing ran, I can't say whether `aware-cr1[.]com` still answers.
 
-## Detection
+## Hunting
 
-Two rules. The first keys on the config trailer: the magic, then the two constant size fields (12 and 16) at +0x0c, anchored to the last 0xDC bytes of a PE resource. It doesn't depend on code or strings, so it should survive a stub rebuild as long as the format does.
-
-```yara
-import "pe"
-
-rule TwoCLoader_Config_Trailer
-{
-    meta:
-        description = "2CLoader: 0xDC-byte config trailer at the end of the payload resource"
-        reference = "https://www.zscaler.com/blogs/security-research/2cloader-new-malware-loader-delivering-vidar-and-remus"
-        sample = "0017821181723261801e24abb9d33c739f382889d46dbf46d320c87ac62e5ca6"
-    strings:
-        // magic, fl, payload size, nonce size 12, tag size 16
-        $cfg = { 2C 3D 4E 5F ?? ?? ?? ?? ?? ?? ?? ?? 0C 00 00 00 10 00 00 00 }
-    condition:
-        uint16(0) == 0x5A4D and
-        for any i in (0 .. pe.number_of_resources - 1) : (
-            pe.resources[i].length > 0xEC and
-            $cfg at (pe.resources[i].offset + pe.resources[i].length - 0xDC)
-        )
-}
-```
-
-The second rule matches the stub. The telemetry key and the two report formats are stored in plain text. The remaining strings are XORed with a per-version key, so the rule uses YARA's `xor` modifier and doesn't assume 0x37.
-
-```yara
-rule TwoCLoader_Loader_Code
-{
-    meta:
-        description = "2CLoader: telemetry key, report format and XOR-encoded strings in the loader stub"
-        reference = "https://www.zscaler.com/blogs/security-research/2cloader-new-malware-loader-delivering-vidar-and-remus"
-        sample = "0017821181723261801e24abb9d33c739f382889d46dbf46d320c87ac62e5ca6"
-    strings:
-        $key  = { 4A 7B 3C 1D 8E 5F A0 D1 62 93 24 F5 B6 47 C8 09 E1 72 53 84 35 A6 D7 18 49 FA 0B 6C 9D 2E BF 50 }
-        $json = "{\"id\":\"%s\",\"s\":\"start\",\"ok\":1,\"t\":0,\"os\":[%u,%u,%u]" ascii
-        $evt  = "{\"id\":\"%s\",\"s\":\"%s\",\"ok\":%d,\"t\":%u,\"x\":%u,\"ec\":%u,\"pid\":%u}" ascii
-        $x1 = "SecurityHealthService.exe" xor(0x01-0xff)
-        $x2 = "WindowsSecurityHealth" xor(0x01-0xff)
-        $x3 = "UserInitMprLogonScript" xor(0x01-0xff)
-        $x4 = "GetSystemFirmwareTable" xor(0x01-0xff)
-        $x5 = "NtUnmapViewOfSection" xor(0x01-0xff)
-    condition:
-        uint16(0) == 0x5A4D and filesize < 20MB and
-        ( $key or ( 1 of ($json, $evt) and 2 of ($x*) ) or 4 of ($x*) )
-}
-```
-
-Both rules match all twelve loaders, and every string in the second rule hits in both stub versions. Neither matches the twelve unpacked payloads. For false positives I only had the 2,090 PE files that ship with the .NET SDK, Mono and the other tools on the bench, with no hits; that is not a Windows install, so test against your own corpus before alerting on these.
-
-For hunting on a host, the strings give these:
+The loader's strings and behavior give these leads:
 
 - A Run or RunOnce value, or a scheduled task, named `SecurityHealthService.exe` that points outside `System32`, and a task named `WindowsSecurityHealth` with an hourly repetition.
 - `schtasks.exe /create /tn … /xml` with an XML file named `~st` plus 8 hex digits and `.xml`.

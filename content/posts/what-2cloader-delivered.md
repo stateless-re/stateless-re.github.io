@@ -2,8 +2,8 @@
 title: "What 2CLoader delivered: Vidar on Epic Games profiles, Remus on Ethereum"
 date: 2026-11-13
 slug: "what-2cloader-delivered"
-description: "The twelve payloads from the 2CLoader post, identified and configs extracted without running them: eight Vidar builds that look up their C2 on Telegram, Steam, Epic Games and Fandom profiles, four Remus builds that share one build tag and one Ethereum contract, and YARA for both."
-tags: ["vidar", "remus", "2cloader", "config-extraction", "dead-drop-resolver", "yara", "windows"]
+description: "The twelve payloads from the 2CLoader post, identified and configs extracted without running them: eight Vidar builds that look up their C2 on Telegram, Steam, Epic Games and Fandom profiles, and four Remus builds that share one build tag and one Ethereum contract."
+tags: ["vidar", "remus", "2cloader", "config-extraction", "dead-drop-resolver", "windows"]
 sample:
   family: "Vidar, Remus"
   sha256: "2386a9d42404cf0151799ed91a700b4b397ec0ffdc619f8a2b1faf6b21a97122"
@@ -13,7 +13,7 @@ toc: true
 
 The twelve payloads I unpacked from 2CLoader in [the previous post](/2026/2cloader-keys-its-payload-to-its-own-padding/) are eight Vidar builds and four Remus builds. Seven of the Vidar builds look for their C2 server somewhere I haven't seen in any earlier Vidar report. Five use a profile on the Epic Games developer community, and two use a Fandom user profile, alongside the Telegram channels and Steam profiles Vidar is known for. The file that MalwareBazaar tags `njrat` is Vidar too, the oldest build in the set, with version 2.8 in its config.
 
-That post stopped at the payloads: it decrypted them, listed their hashes and used MalwareBazaar's tags as stand-ins for family names. This one identifies each payload from its own code and data, extracts every configuration, and turns the result into indicators and two YARA rules. As before, nothing was executed. Configs were read from the files and the decryption routines reimplemented in Python.
+That post stopped at the payloads: it decrypted them, listed their hashes and used MalwareBazaar's tags as stand-ins for family names. This one identifies each payload from its own code and data, extracts every configuration, and turns the result into indicators and hunting leads. As before, nothing was executed. Configs were read from the files and the decryption routines reimplemented in Python.
 
 ## What I found
 
@@ -162,63 +162,13 @@ The first is the Epic Games developer community, the second a Fandom wiki accoun
 
 ## The "njrat" payload is Vidar 2.8
 
-`06185d74`'s payload has no CLR header and no imports. It has the same config layout at the same offsets relative to its key, decrypted by the same extractor, with version 2.8, a Telegram channel and a Steam profile. It also contains the same string-cipher code as the other seven, which the first YARA rule below keys on. It is the oldest build in the set (August 1) and the only one whose loader is the older stub variant. I don't know where the `njrat` tag came from; it describes neither the loader nor the payload.
+`06185d74`'s payload has no CLR header and no imports. It has the same config layout at the same offsets relative to its key, decrypted by the same extractor, with version 2.8, a Telegram channel and a Steam profile. It also contains the same string-cipher code as the other seven. It is the oldest build in the set (August 1) and the only one whose loader is the older stub variant. I don't know where the `njrat` tag came from; it describes neither the loader nor the payload.
 
 ## What I couldn't determine
 
 I didn't open any of the 13 dead-drop pages or query the Ethereum contract. That would mean touching the operator's infrastructure, and the answers would describe today, not the build dates. So the Vidar C2 servers themselves are unknown here, and the Remus Ethereum fallback is known only as a contract and a selector. The 15 bytes in front of each Vidar key differ per build, and I don't know what they are. I didn't reimplement Vidar's string VM, so the Vidar strings, including the anchor parser, are taken from Rapid7's and Zscaler's descriptions and not read by me. For Remus, my emulator recovered one RPC endpoint per build; other reports list as many as seven providers, and I can't rule out more in strings my emulator didn't reach. What `exp` carries and what the shared tag represents on the operator's side are open as well.
 
-## Detection
-
-The first rule matches Vidar's string-cipher key schedule. The code uses the FNV prime `0x01000193` and the constant `0x9E3779B9`, the same constants Zscaler documents for the cipher, and the byte sequences around them are identical in all eight payloads across six distinct compiles. Requiring an empty import table and at least three `rdtsc` timing blocks keeps the rule narrow.
-
-```yara
-import "pe"
-
-rule Vidar_x64_StringCipher_NoImports
-{
-    meta:
-        description = "Vidar native x64 build (tested on config versions 2.8-3.3): ARX string-cipher key schedule (FNV prime 0x01000193, 0x9E3779B9) in a PE with no imports"
-        reference = "https://www.zscaler.com/blogs/security-research/vidar-adds-virtual-machine-and-custom-stream-ciphers-string-obfuscation"
-        sample = "2386a9d42404cf0151799ed91a700b4b397ec0ffdc619f8a2b1faf6b21a97122"
-    strings:
-        // movzx eax, byte [rcx+rax]; mov ecx,[rsp]; xor ecx,eax; mov eax,ecx; mov [rsp],eax; imul eax,[rsp],0x01000193
-        $fnv = { 0F B6 04 01 8B 0C 24 33 C8 8B C1 89 04 24 69 04 24 93 01 00 01 89 04 24 }
-        // shl eax,8; mov ecx,[rsp]; xor ecx,eax; mov eax,ecx; mov [rsp],eax; mov eax,[rsp]; add eax,0x9E3779B9
-        $gold = { C1 E0 08 8B 0C 24 33 C8 8B C1 89 04 24 8B 04 24 05 B9 79 37 9E 89 04 24 }
-        // rdtsc; shl rdx,32; or rax,rdx; mov r8,rax; mov rax, <magic>; mul r8
-        $tsc = { 0F 31 48 C1 E2 20 48 0B C2 4C 8B C0 48 B8 ?? ?? ?? ?? ?? ?? ?? ?? 49 F7 E0 }
-    condition:
-        uint16(0) == 0x5A4D and pe.is_64bit() and pe.number_of_imports == 0 and
-        $fnv and $gold and #tsc >= 3
-}
-```
-
-The second rule matches Remus's syscall dispatcher, which copies stack arguments with `rep movsq` before `syscall`, together with at least two of three syscall-hash comparisons: `NtClose`, `NtFreeVirtualMemory` and `NtDelayExecution` under the CRC32 above. The hashes are the same constants in all four builds, as you'd expect if the seed is fixed. A first version also required the ChaCha20 constant `expa` as an immediate, because Ghidra showed it as one; it matched nothing. The binary computes those constants through the same mixed boolean-arithmetic, and Ghidra had folded them back.
-
-```yara
-import "pe"
-
-rule Remus_x64_Syscall_Hashes
-{
-    meta:
-        description = "Remus stealer x64: direct-syscall stub plus hashed syscall-table lookups"
-        reference = "https://www.gendigital.com/blog/insights/research/remus-64bit-variant-of-lumma-stealer"
-        sample = "8696940855d849d5d6aa1a52896855082bde0fa76da23cdaeca028a5493d4fb1"
-    strings:
-        // sub rcx,4; jle +0xd; lea rsi,[rsp+38h]; lea rdi,[rsp+28h]; rep movsq; syscall
-        $stub = { 48 83 E9 04 7E 0D 48 8D 74 24 38 48 8D 7C 24 28 F3 48 A5 0F 05 }
-        // cmp dword [rcx+rdx*8], <syscall name hash>
-        $h1 = { 81 3C D1 8F B8 2D 93 }
-        $h2 = { 81 3C D1 F0 F8 C5 EE }
-        $h3 = { 81 3C D1 10 05 F8 57 }
-    condition:
-        uint16(0) == 0x5A4D and pe.is_64bit() and
-        $stub and 2 of ($h*)
-}
-```
-
-The Vidar rule matches all eight Vidar payloads and the Remus rule all four Remus payloads. Neither matches the other family, any of the twelve 2CLoader loaders, or anything among 13,460 clean files on my bench, 5,569 of them PE files (the .NET SDK, Mono and my tool directories). That clean set is not a Windows install, so test against your own before alerting. Both rules target the unpacked payload, which in this chain only exists in memory; run them on memory images or on dumps.
+## Hunting
 
 To extract configs: Gen's extractor for Vidar, and for Remus [`families/remus`](https://github.com/stateless-re/tools/tree/main/families/remus) in my tools repository, which prints the C2 slots, the Ethereum contract, the selector and the tag as JSON (`python extract.py PAYLOAD`). It finds the key by the `lea rdx` / `lea r8` pair that passes key and nonce to the cipher setup, and needs no per-build constants.
 
@@ -295,4 +245,4 @@ Every build in this set has its own key and its own build ID, and the Vidar buil
 
 ## Credits
 
-[Zscaler ThreatLabz](https://www.zscaler.com/blogs/security-research/2cloader-new-malware-loader-delivering-vidar-and-remus) (Muhammed Irfan V A) published the 2CLoader samples these payloads came from, and Ismael Garcia Perez's [Vidar string-obfuscation analysis](https://www.zscaler.com/blogs/security-research/vidar-adds-virtual-machine-and-custom-stream-ciphers-string-obfuscation) supplied the cipher constants the Vidar rule keys on. Gen Digital wrote the [Vidar config extractor](https://github.com/gendigitalinc/ioc/tree/master/Vidar) that reads these builds and, with Vojtěch Krejsa and Jan Rubín, the [first analysis of Remus](https://www.gendigital.com/blog/insights/research/remus-64bit-variant-of-lumma-stealer). Milan Spinka at [Rapid7](https://www.rapid7.com/blog/post/tr-malicious-websites-wordpress-compromise-advances-global-stealer-operation/) documented Vidar's earlier config records and anchor parsing, and Malware Cake Factory's [Vidar 3.9 versus 3.8](https://malwarecakefactory.github.io/malware-analysis/vidar-3-9-vs-3-8-analysis/) (October 21) published the XOR config layout these builds use. Malware Cake Factory's [Remus C2 protocol analysis](https://malwarecakefactory.github.io/malware-analysis/remus-c2-protocol-analysis/) and its [October analysis](https://malwarecakefactory.github.io/malware-analysis/remus-protected-startup-tasking-analysis/) of the `4713985869f2…` payload covered the contract, the selector, the slot selector, the tag and the CRC32 hash function before I did. Unit 42's [Remus note](https://github.com/PaloAltoNetworks/Unit42-timely-threat-intel/blob/main/2026-07-30-Remus-Info-Stealer-Uses-Blockchain-Anchored-C2.txt), [SpyCloud](https://spycloud.com/blog/remus-a-new-infostealer/), [CIS](https://www.cisecurity.org/insights/blog/sltt-c2-traffic-tied-to-remus-malware-distribution-operation) and [Flashpoint](https://flashpoint.io/blog/remus-stealer-a-new-not-so-new-infostealer/) reported the contract, the RPC endpoint, the forged `Host` header and the tag's Lumma lineage. Samples are from [MalwareBazaar](https://bazaar.abuse.ch/).
+[Zscaler ThreatLabz](https://www.zscaler.com/blogs/security-research/2cloader-new-malware-loader-delivering-vidar-and-remus) (Muhammed Irfan V A) published the 2CLoader samples these payloads came from, and Ismael Garcia Perez's [Vidar string-obfuscation analysis](https://www.zscaler.com/blogs/security-research/vidar-adds-virtual-machine-and-custom-stream-ciphers-string-obfuscation) supplied the cipher constants. Gen Digital wrote the [Vidar config extractor](https://github.com/gendigitalinc/ioc/tree/master/Vidar) that reads these builds and, with Vojtěch Krejsa and Jan Rubín, the [first analysis of Remus](https://www.gendigital.com/blog/insights/research/remus-64bit-variant-of-lumma-stealer). Milan Spinka at [Rapid7](https://www.rapid7.com/blog/post/tr-malicious-websites-wordpress-compromise-advances-global-stealer-operation/) documented Vidar's earlier config records and anchor parsing, and Malware Cake Factory's [Vidar 3.9 versus 3.8](https://malwarecakefactory.github.io/malware-analysis/vidar-3-9-vs-3-8-analysis/) (October 21) published the XOR config layout these builds use. Malware Cake Factory's [Remus C2 protocol analysis](https://malwarecakefactory.github.io/malware-analysis/remus-c2-protocol-analysis/) and its [October analysis](https://malwarecakefactory.github.io/malware-analysis/remus-protected-startup-tasking-analysis/) of the `4713985869f2…` payload covered the contract, the selector, the slot selector, the tag and the CRC32 hash function before I did. Unit 42's [Remus note](https://github.com/PaloAltoNetworks/Unit42-timely-threat-intel/blob/main/2026-07-30-Remus-Info-Stealer-Uses-Blockchain-Anchored-C2.txt), [SpyCloud](https://spycloud.com/blog/remus-a-new-infostealer/), [CIS](https://www.cisecurity.org/insights/blog/sltt-c2-traffic-tied-to-remus-malware-distribution-operation) and [Flashpoint](https://flashpoint.io/blog/remus-stealer-a-new-not-so-new-infostealer/) reported the contract, the RPC endpoint, the forged `Host` header and the tag's Lumma lineage. Samples are from [MalwareBazaar](https://bazaar.abuse.ch/).

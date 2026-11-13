@@ -2,8 +2,8 @@
 title: "SquadC is SquawkDoor, and one of its installers is SparrowDoor"
 date: 2026-11-13
 slug: "squadc-is-squawkdoor"
-description: "Check Point's SquadC backdoor from the fake Chrome certificate campaign is the SquawkDoor that Positive Technologies described in August. Here are its loader, both config versions, three installers' configs as text, the SQD1 framing, and YARA. Two files listed as SquadC turn out to be SparrowDoor."
-tags: ["squawkdoor", "squadc", "sparrowdoor", "famoussparrow", "dll-sideloading", "config-extraction", "yara", "windows"]
+description: "Check Point's SquadC backdoor from the fake Chrome certificate campaign is the SquawkDoor that Positive Technologies described in August. Here are its loader, both config versions, three installers' configs as text, and the SQD1 framing. Two files listed as SquadC turn out to be SparrowDoor."
+tags: ["squawkdoor", "squadc", "sparrowdoor", "famoussparrow", "dll-sideloading", "config-extraction", "windows"]
 sample:
   family: "SquawkDoor (SquadC)"
   sha256: "e9f2f42ea3611096879f4152a7d78bb3a78a4dbead1c3b7e366dce485207551f"
@@ -13,7 +13,7 @@ toc: true
 
 The backdoor that Check Point Research calls SquadC creates a mutex named `Global\squadc_single_instance`, and Positive Technologies (PT) quoted the same mutex in August when it named the backdoor SquawkDoor. They are one family. Check Point's [report on CopperDragon's Sparrow framework](https://research.checkpoint.com/2026/not-all-that-glitters-is-gold-tracking-copperdragons-sparrow-framework-around-the-globe/) (November 10) lists ten SquadC files from the SilentDelivery watering-hole campaign, in which compromised sites show a fake Chrome certificate error and offer a "Certificate Fix" MSI. Seven of the ten are on MalwareBazaar. Five of those seven really are SquadC. The other two, an installer and its sideloaded DLL, belong to SparrowDoor: the installer's payload decrypts with PT's SparrowDoor key, and its config points at three hosts that Check Point lists for the campaign.
 
-Positive Technologies' [August 21 report](https://positechglobal.com/en/research/pt-esc-threat-intelligence/famoussparrow-attacks-with-updated-sparrowdoor-backdoor-and-new-squawkdoor-backdoor/) already covers the backdoor in detail: the RC4 key, a config structure, the protocol and the command set. Check Point links a copy of that report but still calls SquadC previously undocumented. What I can add is the evidence that the two names mean one thing, the configs of all three SquawkDoor installers as text, an older and shorter config format, the byte order of the wire header, YARA rules (neither vendor published any), and a [config extractor](https://github.com/stateless-re/tools/tree/main/families/squawkdoor). I use PT's name, SquawkDoor, because it came first. As always here, nothing was executed: payloads were decrypted in Python and read with Ghidra and capstone.
+Positive Technologies' [August 21 report](https://positechglobal.com/en/research/pt-esc-threat-intelligence/famoussparrow-attacks-with-updated-sparrowdoor-backdoor-and-new-squawkdoor-backdoor/) already covers the backdoor in detail: the RC4 key, a config structure, the protocol and the command set. Check Point links a copy of that report but still calls SquadC previously undocumented. What I can add is the evidence that the two names mean one thing, the configs of all three SquawkDoor installers as text, an older and shorter config format, the byte order of the wire header, and a [config extractor](https://github.com/stateless-re/tools/tree/main/families/squawkdoor). I use PT's name, SquawkDoor, because it came first. As always here, nothing was executed: payloads were decrypted in Python and read with Ghidra and capstone.
 
 ## What I found
 
@@ -201,86 +201,9 @@ That doesn't undermine Check Point's campaign picture, only the label. Check Poi
 
 Three of Check Point's ten SquadC hashes (`715c2066…` and `f44159be…`, both CertFixer.msi, and the loader `054c0ffb…`) are not on MalwareBazaar, so I can't say which backdoor they carry. I don't have the LNK-delivered build PT analyzed, which is where I'd look for the table-driven API hash. I read the configs but contacted none of the hosts, so I don't know what `/register-ip` returns or whether `XlocmwW` is still accepted. And the reading of `0x431790` as "scores the twelve checks against a threshold" rests on PT's description (seven of twelve) plus the table reference. I didn't trace the threshold constant myself.
 
-## Detection
+## Hunting
 
-Four rules: the loader DLL, the payload as it sits on disk, the backdoor image (carved or in memory), and the MSI builder. I tested them on all seven samples and every file derived from them. Each rule matched what its name says and nothing else. That includes no hits on the two signed host executables or on the SparrowDoor payload, which `SilentDelivery_CertFix_MSI` deliberately covers at the MSI level only. On the clean corpus available on this machine (12,982 files from the .NET SDK, Mono and analysis tools, 5,109 of them PE) there were no matches. There's no Windows System32 here, so the loader rule in particular deserves a run against your own clean DLLs.
-
-```yara
-rule SquawkDoor_Loader_MSVCR110
-{
-    meta:
-        description = "SquawkDoor (SquadC) sideloading loader: FNV-1a variant API hashing (seed 0x5D8CED15, multiplier 0x024151A3) with hashes for the file-read-decrypt-jump sequence"
-        author = "stateless"
-        date = "2026-11-13"
-        hash1 = "f23e5391656b178bc0ab510b0fca6ffbd963cf94870c82a5920f0f338f561f18"
-        hash2 = "8bbc395a7a0faff074c6e31c7da37bf1540a4e7ec3d80870f8d6bd1f5d4cecbb"
-    strings:
-        $seed = { 15 ED 8C 5D }
-        $mul = { 69 ?? A3 51 41 02 }
-        $h_createfilea = { 1E CD 31 8E }
-        $h_readfile = { C3 3B C1 E5 }
-        $h_closehandle = { D5 6C BF D6 }
-        $h_virtualprotect = { A3 B7 67 7E }
-        $h_getmodulefilenamea = { CD EC 22 89 }
-    condition:
-        uint16(0) == 0x5A4D and filesize < 1MB and $seed and $mul and 3 of ($h_*)
-}
-
-rule SquawkDoor_Encrypted_Payload
-{
-    meta:
-        description = "SquawkDoor payload file (hhc) as dropped next to the sideloading host: RC4 key Hg5th5324Ve over a shellcode stub that starts 55 8B EC 64 A1 30 00 00 00"
-        author = "stateless"
-        date = "2026-11-13"
-        hash1 = "1c28aaa57223794ad34b0ebc063dc450187425e5c9b38a2c32276d8ea34c9f27"
-        hash2 = "83bc97e0a7da7030cac699a239b7071e84a388bc235a0cd9d3d01a5639915f08"
-    condition:
-        filesize < 2MB and uint32be(0) == 0x327CE0F4 and uint32be(4) == 0x146201BE and uint8(8) == 0x9C
-}
-
-rule SquawkDoor_Backdoor
-{
-    meta:
-        description = "SquawkDoor (SquadC) backdoor image, carved or in memory: SQD1 frame magic as an immediate plus build strings"
-        author = "stateless"
-        date = "2026-11-13"
-        hash1 = "9120968808b262f030c1dbb37cafa0706d7d110e957655676396e0d5299953ac"
-        hash2 = "98c919734910cc7a825f9b5b4f7390831ba32cf054a01b5b7bf5e37a352f9155"
-    strings:
-        $magic_push = { 68 31 44 51 53 }
-        $magic_cmp = { 3D 31 44 51 53 }
-        $mutex = "squadc_single_instance"
-        $key = "Hg5th5324Ve"
-        $default_c2 = "127.0.0.1:8443"
-        $default_tag = "changeme"
-        $run = "WindowsUpdateAssist"
-        $err = "systeminfo failed"
-    condition:
-        1 of ($magic_*) and 3 of ($mutex, $key, $default_c2, $default_tag, $run, $err)
-}
-
-rule SilentDelivery_CertFix_MSI
-{
-    meta:
-        description = "MSI builder used for the fake certificate-fix installers (SquawkDoor and SparrowDoor): VBScript MsgBox popup, WScript.Shell launch from INSTALLDIR, Manufacturer Hello World, cabinet stream AppCab"
-        author = "stateless"
-        date = "2026-11-13"
-        hash1 = "b379d07ba81d4190490d9893b2d6d830ff594e042dce26053ef07794d0403787"
-        hash2 = "e5f7bbfc187264336dea5dfebfb5a7dd1e7fcdcc9692db55fbe6eb4d28f027bc"
-    strings:
-        $cab = "#AppCab"
-        $popup = "ShowPopup"
-        $msgbox = "MsgBox \""
-        $run = "sh.CurrentDirectory = Session.Property(\"INSTALLDIR\") : sh.Run Chr(34) & Session.Property(\"INSTALLDIR\")"
-        $mfr = "Hello World"
-    condition:
-        uint32(0) == 0xE011CFD0 and all of them
-}
-```
-
-`SquawkDoor_Loader_MSVCR110` keys on the hash algorithm's two constants and the precomputed hashes of the five APIs, written as bare 32-bit values so a change of register in the `mov ecx, imm32` doesn't break it. It survives a new key or a new host program, but not a new hash seed. `SquawkDoor_Encrypted_Payload` is the most brittle: it is the first nine bytes of the stub encrypted with this key, so a new key or a new stub breaks it. In exchange it finds the payload file on disk without any parsing. `SquawkDoor_Backdoor` has no `MZ` check on purpose, so that it works on memory dumps and on stage 2 before carving, where the magics are zero. The MSI rule describes the builder and fires on SparrowDoor installers too, which is the point: the delivery is the shared part.
-
-For hunting without YARA, look for these:
+Look for these:
 
 - a signed `ecmd.exe` running as `hhc.exe` (or as any name other than its own) from a short `Win??` folder under `%LOCALAPPDATA%` or from `%TEMP%`, next to an `MSVCR110.dll` that isn't Microsoft's;
 - a 2 MB private RWX region in that process whose offset `0x400` holds a PE header with `MZ` and `PE\0\0` zeroed (the stub maps the image elsewhere in the buffer and doesn't wipe the copy; I haven't checked whether the backdoor does later);

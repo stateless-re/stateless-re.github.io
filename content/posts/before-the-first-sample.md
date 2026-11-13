@@ -13,7 +13,7 @@ Before pulling real malware, I wanted proof the bench works. The first thing I t
 
 Reverse engineering is mostly reading. Someone wrote a program and then made sure nobody else could follow it. Names stripped, code packed, strings encrypted, the real work buried under functions that do nothing. The job is to read it anyway.
 
-Most posts will take a malware family someone has already reported, pull the same sample from a public repository, and read it from the first instruction to the last, crediting whoever found it. The work is static. A decompiler turns the binary into text and I go through it function by function; .NET samples come back almost as the original C#. When a sample decrypts its own strings or configuration, I copy that routine out and run it in an emulator, so the sample itself never executes. Every analysis ends with detection rules, tested against the sample before they're published.
+Most posts will take a malware family someone has already reported, pull the same sample from a public repository, and read it from the first instruction to the last, crediting whoever found it. The work is static. A decompiler turns the binary into text and I go through it function by function; .NET samples come back almost as the original C#. When a sample decrypts its own strings or configuration, I copy that routine out and run it in an emulator, so the sample itself never executes. Every analysis ends with what a defender can use: indicators, hunting leads and, where nothing public does the job, a tool that extracts the config.
 
 ## The warm-up
 
