@@ -1,3 +1,39 @@
-<figure class="dump" aria-label="Hex dump of the word stateless, followed by a null byte">
-  <pre aria-hidden="true"><span class="off">00000000</span>  <span class="b" data-i="0" style="--n:0">73</span> <span class="b" data-i="1" style="--n:1">74</span> <span class="b" data-i="2" style="--n:2">61</span> <span class="b" data-i="3" style="--n:3">74</span> <span class="b" data-i="4" style="--n:4">65</span> <span class="b" data-i="5" style="--n:5">6c</span> <span class="b" data-i="6" style="--n:6">65</span> <span class="b" data-i="7" style="--n:7">73</span>  <span class="b" data-i="8" style="--n:8">73</span> <span class="b" data-i="9" style="--n:9">00</span>  <span class="bar">|</span><span class="c" data-i="0" style="--n:0">s</span><span class="c" data-i="1" style="--n:1">t</span><span class="c" data-i="2" style="--n:2">a</span><span class="c" data-i="3" style="--n:3">t</span><span class="c" data-i="4" style="--n:4">e</span><span class="c" data-i="5" style="--n:5">l</span><span class="c" data-i="6" style="--n:6">e</span><span class="c" data-i="7" style="--n:7">s</span><span class="c" data-i="8" style="--n:8">s</span><span class="c" data-i="9" style="--n:9">.</span><span class="bar">|</span><span class="cursor"></span></pre>
+{{- /* `hexdump -C` of a zeroed 4 KiB page that holds only the name.
+       Two widths: 16 bytes a row, and 8 for narrow screens. */ -}}
+{{- $bytes := slice "73" "74" "61" "74" "65" "6c" "65" "73" "73" -}}
+{{- $chars := split "stateless" "" -}}
+<figure class="dump" aria-label="Hex dump of a page of memory. It holds the word stateless and a null byte; everything after that is zero.">
+{{- range $w := slice 16 8 }}
+  <pre class="w{{ $w }}" aria-hidden="true">
+    {{- range $r := seq 0 (div 16 $w) -}}
+      {{- $base := mul $r $w -}}
+      <span class="off">{{ printf "%08x" $base }}</span>{{ "  " -}}
+      {{- range $j := seq 0 (sub $w 1) -}}
+        {{- $i := add $base $j -}}
+        {{- if eq $j 8 }}{{ " " }}{{ end -}}
+        {{- if lt $i 9 -}}
+          <span class="b w" data-i="{{ $i }}" style="--n:{{ $i }}">{{ index $bytes $i }}</span>
+        {{- else if eq $i 9 -}}
+          <span class="b" data-i="9">00</span>
+        {{- else -}}
+          00
+        {{- end -}}
+        {{- " " -}}
+      {{- end -}}
+      {{- " |" -}}
+      {{- range $j := seq 0 (sub $w 1) -}}
+        {{- $i := add $base $j -}}
+        {{- if lt $i 9 -}}
+          <span class="c w" data-i="{{ $i }}" style="--n:{{ $i }}">{{ index $chars $i }}</span>
+        {{- else if eq $i 9 -}}
+          <span class="c" data-i="9">.</span>
+        {{- else -}}
+          .
+        {{- end -}}
+      {{- end -}}
+      {{- "|\n" -}}
+    {{- end -}}
+    {{- "*\n" -}}
+    <span class="off">00001000</span></pre>
+{{- end }}
 </figure>

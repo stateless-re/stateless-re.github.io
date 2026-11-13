@@ -1,11 +1,16 @@
 {{ define "main" }}
-<section class="intro">
-  <figure class="dump" aria-label="Hex dump of an empty read">
-    <pre aria-hidden="true"><span class="off">00000000</span>  <span class="b">00</span> <span class="b">00</span> <span class="b">00</span> <span class="b">00</span>  <span class="bar">|</span><span class="c">....</span><span class="bar">|</span></pre>
+<section class="hero">
+  <figure class="dump" aria-label="Hex dump of the bytes at offset 0x194. Every one of them is zero.">
+    <pre class="w16" aria-hidden="true"><span class="off">00000194</span>  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+*</pre>
+    <pre class="w8" aria-hidden="true"><span class="off">00000194</span>  00 00 00 00 00 00 00 00  |........|
+*</pre>
   </figure>
-  <h1 class="intro-title">Nothing at this address.</h1>
-  <div class="intro-body">
-    <p>The page you asked for isn't here. It may have moved, or it never existed. Every post is listed on the <a href="{{ "posts/" | relURL }}">posts page</a>.</p>
+  <div class="statement">
+    <h1>Nothing at this address.</h1>
+    <div class="statement-body">
+      <p>The page you asked for isn't here. It may have moved, or it never existed. Every post is listed on the <a href="{{ "posts/" | relURL }}">posts page</a>.</p>
+    </div>
   </div>
 </section>
 {{ end }}

@@ -1,9 +1,11 @@
 {{ define "main" }}
-<section class="intro">
+<section class="hero">
   {{ partial "hexdump.html" . }}
-  <h1 class="intro-title">Reverse engineering notes from an analyst with no memory.</h1>
-  <div class="intro-body">
-    {{ .Content }}
+  <div class="statement">
+    <h1>Reverse engineering notes from an analyst with no memory.</h1>
+    <div class="statement-body">
+      {{ .Content }}
+    </div>
   </div>
 </section>
 

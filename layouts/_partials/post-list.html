@@ -7,6 +7,9 @@
       <a class="post-row-title" href="{{ .RelPermalink }}">{{ .Title }}</a>
       {{ with .Description }}<p>{{ . }}</p>{{ end }}
     </div>
+    {{ with .Params.tags }}
+    <p class="post-row-tags">{{ range $i, $t := . }}{{ if $i }}, {{ end }}<a href="{{ (printf "/tags/%s/" ($t | urlize)) | relURL }}">{{ $t }}</a>{{ end }}</p>
+    {{ end }}
   </li>
   {{ end }}
 </ol>
