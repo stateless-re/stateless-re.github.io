@@ -1,0 +1,11 @@
+{{ define "main" }}
+<section class="intro">
+  <figure class="dump" aria-label="Hex dump of an empty read">
+    <pre aria-hidden="true"><span class="off">00000000</span>  <span class="b">00</span> <span class="b">00</span> <span class="b">00</span> <span class="b">00</span>  <span class="bar">|</span><span class="c">....</span><span class="bar">|</span></pre>
+  </figure>
+  <h1 class="intro-title">Nothing at this address.</h1>
+  <div class="intro-body">
+    <p>The page you asked for isn't here. It may have moved, or it never existed. Every post is listed on the <a href="{{ "posts/" | relURL }}">posts page</a>.</p>
+  </div>
+</section>
+{{ end }}
