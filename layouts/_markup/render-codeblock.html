@@ -1,0 +1,9 @@
+{{- /* Every fenced block: a figure, marked wide when a line would not fit the
+       measure, with an optional title="" caption and a copy button. */ -}}
+{{- $max := 0 -}}
+{{- range split .Inner "\n" }}{{ $max = math.Max $max (strings.RuneCount .) }}{{ end -}}
+<figure class="code{{ if gt $max 74 }} wide{{ end }}">
+  {{- with .Attributes.title }}<figcaption>{{ . | markdownify }}</figcaption>{{ end }}
+  {{ (transform.HighlightCodeBlock .).Wrapped }}
+  <button class="copy" type="button" hidden>Copy</button>
+</figure>

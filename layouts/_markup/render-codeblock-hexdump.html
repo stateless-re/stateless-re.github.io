@@ -1,0 +1,23 @@
+{{- /* A hex dump, in the homepage dump's colours: offsets soft, zero bytes dim.
+       Lines: [offset:] hex bytes, two spaces, then ASCII and any note. */ -}}
+{{- $max := 0 -}}
+{{- range split .Inner "\n" }}{{ $max = math.Max $max (strings.RuneCount .) }}{{ end -}}
+<figure class="code hexdump{{ if gt $max 74 }} wide{{ end }}">
+  {{- with .Attributes.title }}<figcaption>{{ . | markdownify }}</figcaption>{{ end }}
+  <pre><code>
+  {{- range split (strings.TrimRight "\n" .Inner) "\n" -}}
+    {{- $off := "" -}}{{- $hex := . -}}{{- $rest := "" -}}
+    {{- with findRESubmatch `^(\s*[0-9A-Fa-f]{4,}:?\s+)(.*)$` $hex 1 -}}
+      {{- $off = index . 0 1 -}}{{- $hex = index . 0 2 -}}
+    {{- end -}}
+    {{- with findRESubmatch `^((?:[0-9A-Fa-f]{2,8} ?)+)(\s{2,}.*)$` $hex 1 -}}
+      {{- $hex = index . 0 1 -}}{{- $rest = index . 0 2 -}}
+    {{- else -}}
+      {{- if not (findRE `^(?:[0-9A-Fa-f]{2,8} ?)+$` $hex 1) }}{{ $rest = $hex }}{{ $hex = "" }}{{ end -}}
+    {{- end -}}
+    {{- $hex = replaceRE `\b((?:00)+)\b` `<span class="z">$1</span>` $hex -}}
+    {{- with $off }}<span class="off">{{ . }}</span>{{ end }}{{ $hex | safeHTML }}<span class="txt">{{ $rest }}</span>{{ "\n" -}}
+  {{- end -}}
+  </code></pre>
+  <button class="copy" type="button" hidden>Copy</button>
+</figure>

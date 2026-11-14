@@ -40,6 +40,7 @@
       fit();
       document.addEventListener("DOMContentLoaded", function () {
         var links = {}, heads = [], current = null, queued = false;
+        var wides = document.querySelectorAll(".code.wide");
         toc.querySelectorAll('a[href^="#"]').forEach(function (a) {
           var h = document.getElementById(decodeURIComponent(a.hash.slice(1)));
           if (h) { links[h.id] = a; heads.push(h); }
@@ -54,14 +55,20 @@
           if (heads.length && window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4) {
             hit = heads[heads.length - 1];
           }
+          var tr = toc.getBoundingClientRect(), under = false;
+          for (var j = 0; j < wides.length && !under; j++) {
+            var r = wides[j].getBoundingClientRect();
+            under = r.right > tr.left && r.bottom > tr.top && r.top < tr.bottom;
+          }
+          toc.classList.toggle("yield", under && wide.matches);
           if (hit === current) return;
           if (current) links[current.id].removeAttribute("aria-current");
           if (hit) links[hit.id].setAttribute("aria-current", "location");
           current = hit;
         }
-        window.addEventListener("scroll", function () {
-          if (!queued) { queued = true; requestAnimationFrame(mark); }
-        }, { passive: true });
+        function queue() { if (!queued) { queued = true; requestAnimationFrame(mark); } }
+        window.addEventListener("scroll", queue, { passive: true });
+        window.addEventListener("resize", queue);
         mark();
       });
     })();
@@ -71,6 +78,20 @@
     <div class="prose">
       {{ .Content }}
     </div>
+    <script>
+    document.querySelectorAll(".code .copy").forEach(function (b) {
+      if (!navigator.clipboard) return;
+      b.hidden = false;
+      b.addEventListener("click", function () {
+        var text = b.parentNode.querySelector("pre").innerText.replace(/\n$/, "");
+        navigator.clipboard.writeText(text).then(function () {
+          b.textContent = "Copied";
+          b.classList.add("done");
+          setTimeout(function () { b.textContent = "Copy"; b.classList.remove("done"); }, 1400);
+        });
+      });
+    });
+    </script>
   </div>
 
   {{ if $isPost }}

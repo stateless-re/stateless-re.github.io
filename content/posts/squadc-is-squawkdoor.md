@@ -27,7 +27,7 @@ Positive Technologies' [August 21 report](https://positechglobal.com/en/research
 
 The overlap is visible before opening any file. All seven files I could download from Check Point's SquadC table are also in PT's IOC table. For five of them (the installers `b379d07b…`, `e9f2f42e…` and `f51dc5e1…`, and the loaders `f23e5391…` and `8bbc395a…`) PT's label is SquawkDoor. PT also lists the four installers' embedded cabinets, and the `AppCab` streams I extracted hash to those entries. PT gives the backdoor's mutex as `squadc_single_instance`. Check Point says the name SquadC "is derived from an internal reference left by the author in the sample" and shows it only as a screenshot. Both decrypted SquawkDoor images I recovered have this string next to the persistence and cleanup strings. Here it is in the March build's decrypted stage 2 (offsets in the restored image are 0x400 lower):
 
-```text
+```hexdump
 00031d10: 6e00 0000 5769 6e64 6f77 7355 7064 6174  n...WindowsUpdat
 00031d20: 6541 7373 6973 7400 6170 702e 6578 6500  eAssist.app.exe.
   ...
@@ -62,7 +62,7 @@ That shared builder is probably why the SparrowDoor installer ended up in a Squa
 
 The popup text gave me the first wrong turn. The Taiwanese installer's message, decoded as Big5 (the Traditional Chinese code page), fails at byte `0x95`. Decoded as GBK, it reads 証書安裝成功,請返回瀏覽器操作!, which is the Traditional Chinese text PT quotes, stored in the Simplified Chinese code page. The German installer has the same habit:
 
-```text
+```hexdump
 7a 75 72 a8 b9 63 6b 2c    zurück,
 ```
 
@@ -110,7 +110,7 @@ The decrypted `hhc` begins with x86 code: `55 8B EC 64 A1 30 00 00 00` is `push 
 
 Searching the March build's decrypted blob for `MZ` and `PE\0\0` gave two hits near `0x30AD9`. They looked like an embedded image. They were code instead: `B8 4D 5A 00 00 66 39 05 00 00 40 00` is `mov eax, 'MZ'; cmp [0x400000], ax`, the C runtime checking its own image base. The real image at `0x400` has both magics overwritten with zeros, and nothing else changed (March build shown; the May build is the same with `e_lfanew` 0x118):
 
-```text
+```hexdump
 00000430: 0000 0000 0000 0000 0000 0000 1001 0000  ................   e_lfanew = 0x110
 00000510: 0000 0000 4c01 0500 5021 b969 0000 0000  ....L...P!.i....   "PE\0\0" zeroed, then i386, 5 sections
 ```
@@ -121,7 +121,7 @@ Writing `MZ` and `PE\0\0` back gives a valid PE file. For the May payload that p
 
 PT says the config is RC4-encrypted with the same key, and gives a structure that adds up to 0x18C bytes. In the May build, the code that loads it is short:
 
-```text
+```asm
 40165c  mov ecx, 0x63          ; 0x63 dwords = 0x18C bytes
 401667  mov esi, 0x458000      ; start of .data
 4016b0  rep movsd              ; copy to the stack
@@ -164,7 +164,7 @@ The [extractor](https://github.com/stateless-re/tools/tree/main/families/squawkd
 
 PT describes each message as a `uint32` magic `SQD1`, a `uint16` command code, a `uint16` error flag and a `uint32` body length, without byte order. In the binary the magic is the immediate `0x53514431`, which in memory is the bytes `31 44 51 53`, or "1DQS". It doesn't stay that way:
 
-```text
+```asm
 430a59  mov edi, [0x445224]     ; WS2_32!htonl
 430a5f  push 0x53514431
 430a67  call edi                ; -> 53 51 44 31 = "SQD1" on the wire

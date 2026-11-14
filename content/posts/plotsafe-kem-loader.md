@@ -29,7 +29,7 @@ The DLL is Go 1.25.0 built as a c-shared library (`loader_3.dll`, export `DllCon
 
 Talos's write-up points at 808 exact 256-byte permutations in `.rdata` (file offset `0x352940`) and calls them obfuscator key material, not ciphertext. That is right. Each string site copies one permutation onto the stack and runs a few rounds of byte substitution and chained XOR over a heap buffer:
 
-```text
+```asm
 lea  rsi, [rip + 0x2e1ffd]      ; one of the 808 tables
 call 0x180068600                ; Go duffcopy, 256 bytes to [rsp+0x1c]
 ...
@@ -41,7 +41,7 @@ Rather than reimplement each variant, I emulated every function that loads a tab
 
 So emulating the 960 sites would not have given Talos the C2. The loader's own strings are much simpler, a Caesar shift on letters that changes per string:
 
-```text
+```asm
 lea  ecx, [rdi - 0x4f]          ; c - 79
 imul rcx, rdx                   ; / 26 (0x9d89d89e magic)
 imul ecx, ecx, 0x1a
@@ -75,7 +75,7 @@ If the decryption returns an empty slice, main returns. No message, no exit code
 
 Inside `0x18026e0c0`, the loader Ascii85-decodes a 32-byte mask, `XLCMJDeshSLvAFYMfRKfShzaDNgrTnkb`, and then runs its checks. A hit doesn't branch to an exit. It inverts one byte of the mask:
 
-```text
+```asm
 mov  esi, 0x7ffe03c0            ; KUSER_SHARED_DATA.ActiveProcessorCount
 cmp  dword ptr [rsi], 2
 jae  0x18026fec2
@@ -117,7 +117,7 @@ On a clean run the shared secret is:
 
 Next comes a step that is meant to pick a salt. The loader XOR-decodes the string `salt-select`, passes `sha256.New` and the shared secret to what looks like `crypto/hmac.New`, writes nothing to the result, and then:
 
-```text
+```asm
 mov  rbx, rax          ; slice "salt-select", len 11
 mov  rax, [rsp+0xa78]  ; the HMAC
 call rdx               ; hash.Hash.Sum(b)

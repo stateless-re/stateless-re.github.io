@@ -158,7 +158,7 @@ private boolean a(Context context, String str) {
 
 (1) copies the resource into `files/.honor/` and XORs it with `g.s`, the string `letu`. The XOR restarts at the key's first byte for every 1,024-byte read, and 1,024 is a multiple of 4, so for full reads this is `out[i] = in[i] ^ "letu"[i % 4]`. The file name is the CRC32 of `letu` plus the version, so the built-in version 39 lands at `files/.honor/2184177399.jar`. The shell also runs `chmod 777` on `.honor`.
 
-```text
+```console
 $ python3 -c '...xor with b"letu"...'  letu.jet
 37035 b'PK\x03\x04'
 be9d36d87fde4fb31bc3a53acaadbfcea40ea136b49f5e9406a2bab3b2ffcff6  letu.jet

@@ -30,18 +30,18 @@ The file starts with `1B 4C 4A 01 02`: the LuaJIT magic, dump version 1, and fla
 
 The last prototype is a wrapper that calls the next-to-last one with `...`. That one, prototype 337, starts like this (my disassembler; register numbers as in the bytecode, loop bodies trimmed):
 
-```text
-0000 TDUP   0 0      ; table of 1,791 slots, 1,790 strings      // (1)
-0001 FNEW   1 1      ; F0 = function(i) return T[i - 46736] end // (2)
+```asm
+0000 TDUP   0 0      ; (1) table of 1,791 slots, 1,790 strings
+0001 FNEW   1 1      ; (2) F0 = function(i) return T[i - 46736] end
 0002 GGET   2 2      ; 'ipairs'
-0004 TDUP   4 3      ; {1, 1790}                                // (3)
+0004 TDUP   4 3      ; (3) {1, 1790}
 0006 TDUP   4 4      ; {1, 1341}
 0008 TDUP   4 5      ; {1342, 1790}
 0012 TGETB  7 6 1    ; reverse T[a..b] in place
 ...
-0046 TDUP   9 15     ; 64 entries: 't'=0 'C'=1 'N'=2 ...       // (4)
+0046 TDUP   9 15     ; (4) 64 entries: 't'=0 'C'=1 'N'=2 ...
 0047 TDUP   10 16    ; 85 entries: '/'=0 '('=1 'k'=2 ...
-0065 ISNES  17 18    ; first char == 'T' ?                      // (5)
+0065 ISNES  17 18    ; (5) first char == 'T' ?
 0153 ISNES  17 20    ; first char == '1' ?
 ```
 

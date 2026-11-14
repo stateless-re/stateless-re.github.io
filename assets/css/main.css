@@ -505,6 +505,11 @@ main { padding-bottom: clamp(4rem, 10vw, 7rem); }
   border-left-color: var(--mark);
 }
 
+.toc.yield { opacity: 0; visibility: hidden; }
+@media (prefers-reduced-motion: no-preference) {
+  .toc { transition: opacity .15s, visibility .15s; }
+}
+
 @media (min-width: 68rem) {
   .has-toc {
     display: grid;
@@ -624,9 +629,23 @@ code, pre, kbd { font-family: var(--mono); font-feature-settings: "liga" 0, "cal
   overflow-wrap: anywhere;
 }
 
+/* a block is a figure: the panel, and sometimes a caption above it */
+.prose .code {
+  position: relative;
+  margin: 1.5em 0 0;
+  font-size: .875rem;
+}
+.prose .code + * { margin-top: 1.5em; }
+.prose li > .code { margin-block: .8em; }
+.prose .code figcaption {
+  margin: 0 0 .45rem;
+  font-size: .95rem;
+  color: var(--soft);
+}
+
 .prose pre {
-  font-size: .84rem;
-  line-height: 1.6;
+  font-size: 1em;
+  line-height: 1.65;
   margin: 0;
   padding: 1rem 1.15rem;
   overflow-x: auto;
@@ -635,13 +654,158 @@ code, pre, kbd { font-family: var(--mono); font-feature-settings: "liga" 0, "cal
   color: var(--ink);
   border-radius: 4px;
   -webkit-font-smoothing: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--dim) transparent;
 }
-.prose .highlight, .prose > pre { margin-top: 1.5em; }
-.prose .highlight + *, .prose > pre + * { margin-top: 1.5em; }
+.prose .code .highlight { margin: 0; }
 
 @media (max-width: 45.99rem) {
-  .prose pre { font-size: .78rem; padding: .85rem 1rem; }
+  .prose .code { font-size: .8rem; }
+  .prose pre { padding: .85rem 1rem; }
 }
+
+/* a block with lines longer than the measure grows into the margin, as far
+   as the frame; only past that does it scroll */
+@media (min-width: 68rem) {
+  .prose .code.wide {
+    width: max-content;
+    min-width: 100%;
+    max-width: var(--frame);
+    z-index: 1;
+  }
+}
+
+/* sits on the block's top edge, on the paper, so it never covers a line */
+.code .copy {
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  appearance: none;
+  border: 0;
+  background: none;
+  color: var(--soft);
+  font: 500 .8rem/1 var(--sans);
+  padding: .3rem .15rem .4rem .6rem;
+  cursor: pointer;
+  opacity: 0;
+}
+.code:hover .copy, .code .copy:focus-visible, .code .copy.done { opacity: 1; }
+.code .copy:hover { color: var(--ink); text-decoration: underline; text-underline-offset: .2em; }
+.code .copy.done { color: var(--ink); text-decoration: underline; text-decoration-color: var(--mark); text-decoration-thickness: .28em; text-underline-offset: -.1em; text-decoration-skip-ink: none; }
+@media (hover: none) { .code .copy { opacity: 1; } }
+
+.vh {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ---------- listings: address, instruction, note ---------- */
+
+.asm-scroll {
+  overflow-x: auto;
+  background: var(--panel);
+  border-radius: 4px;
+  padding: .8rem 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--dim) transparent;
+}
+.prose .asm table {
+  width: 100%;
+  border-collapse: collapse;
+  font: 1em/1.65 var(--mono);
+  font-feature-settings: "liga" 0, "calt" 0;
+  font-variant-numeric: normal;
+  -webkit-font-smoothing: auto;
+}
+.prose .asm td {
+  padding: .12rem 0;
+  border: 0;
+  vertical-align: baseline;
+  white-space: nowrap;
+}
+.prose .asm .a {
+  padding-left: 1.15rem;
+  padding-right: 1.5ch;
+  color: var(--soft);
+  user-select: none;
+}
+.prose .asm .a:empty { padding-right: 0; }
+.prose .asm .i { padding-right: 1.15rem; }
+.asm .m {
+  display: inline-block;
+  min-width: calc(var(--mn) * 1ch);
+  font-weight: 700;
+}
+.asm .m.flow { color: var(--syn-kw); }
+.asm .n { color: var(--syn-num); }
+.asm .s { color: var(--syn-str); }
+
+/* the note column: the analyst's margin, ruled off from the machine's text */
+.prose .asm .c {
+  width: 100%;
+  min-width: 16ch;
+  padding-left: 1.15rem;
+  padding-right: 1.15rem;
+  border-left: 1px solid var(--rule);
+  color: var(--soft);
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+.prose .asm.has-marks .c { padding-left: calc(1.15rem + 3ch); }
+.asm .mark {
+  display: inline-block;
+  width: 2ch;
+  margin-left: -3ch;
+  margin-right: 1ch;
+  background: var(--mark);
+  color: var(--mark-ink);
+  font-weight: 700;
+  text-align: center;
+  border-radius: 2px;
+}
+.prose .asm .gap td { color: var(--dim); line-height: 1.2; padding-block: .1rem; }
+.prose .asm .gap td + td { padding-left: .15ch; }
+
+.prose .asm.no-notes .c { display: none; }
+.prose .asm.no-notes .i { width: 100%; }
+
+/* no room for three columns: the note drops under its instruction */
+@media (max-width: 45.99rem) {
+  .asm-scroll { padding: .85rem 1rem; }
+  .prose .asm table, .prose .asm tbody { display: block; }
+  .prose .asm tr { display: grid; grid-template-columns: auto minmax(0, 1fr); }
+  .prose .asm td { display: block; padding: 0; }
+  .prose .asm .a { padding: 0 1ch 0 0; }
+  .prose .asm .a:empty { display: none; }
+  .prose .asm .i { grid-column: 2; white-space: normal; overflow-wrap: anywhere; padding-right: 0; }
+  .prose .asm .a:empty + .i { grid-column: 1 / -1; }
+  .prose .asm .c, .prose .asm.has-marks .c {
+    grid-column: 1 / -1;
+    width: auto;
+    min-width: 0;
+    margin: .15rem 0 .55rem;
+    padding: 0 0 0 1.2ch;
+    border-left: 2px solid var(--rule);
+  }
+  .prose .asm .c:empty, .prose .asm.no-notes .c { display: none; }
+  .asm .mark { margin-left: 0; }
+  .prose .asm .gap td:first-child { display: none; }
+  .prose .asm .gap td + td { grid-column: 1 / -1; padding-left: 0; }
+}
+
+/* ---------- hex dumps, in the colours of the one on the front page ---------- */
+
+.hexdump .off { color: var(--soft); user-select: none; }
+.hexdump .z { color: var(--dim); }
+.hexdump .txt { color: var(--soft); }
+
+/* terminal sessions: the prompt steps back, the output is quieter than the command */
+.chroma .gp { color: var(--dim); user-select: none; }
+.chroma .go { color: var(--soft); }
 
 /* syntax: one hue per role, all from --syn-* (AA contrast on --panel in both themes) */
 .chroma .c, .chroma .c1, .chroma .cm, .chroma .cs, .chroma .ch { color: var(--soft); font-style: italic; }

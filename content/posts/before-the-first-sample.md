@@ -66,7 +66,7 @@ It isn't. It's a 32-bit `int`, and it wraps. Longer strings overflow past four b
 
 Trying every seven-letter lowercase string means 8,031,810,176 hashes. A meet-in-the-middle search avoids that. Hash all 17,576 three-letter tails once and keep them in a table. Then, for each of the 456,976 four-letter heads, work out which tail value would land on `0x5e9b3c` and look it up. That takes a few seconds:
 
-```text
+```console
 $ ./crackme ghnuatw
 ok
 ```

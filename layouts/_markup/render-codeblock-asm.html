@@ -1,0 +1,69 @@
+{{- /* A disassembly or bytecode listing. One instruction a line:
+
+         [address[:]]  mnemonic operands   ; note
+         ...                               (lines left out)
+
+       A note that starts with (1), (2)... gets a highlighter mark the prose
+       can refer to. Notes wrap in their own column, so they can be sentences. */ -}}
+{{- $rows := slice -}}
+{{- $mn := 3 -}}
+{{- $marks := false -}}
+{{- $notes := false -}}
+{{- $max := 0 -}}
+{{- range split (strings.TrimRight "\n" .Inner) "\n" -}}
+  {{- $line := strings.TrimSpace . -}}
+  {{- $max = math.Max $max (strings.RuneCount $line) -}}
+  {{- if or (eq $line "...") (eq $line "…") -}}
+    {{- $rows = $rows | append (dict "gap" true) -}}
+  {{- else if $line -}}
+    {{- $note := "" -}}
+    {{- with findRESubmatch `^(.*?)\s*;\s*(.*)$` $line 1 -}}
+      {{- $line = index . 0 1 -}}
+      {{- $note = index . 0 2 -}}
+    {{- end -}}
+    {{- if $note }}{{ $notes = true }}{{ end -}}
+    {{- $mark := "" -}}
+    {{- with findRESubmatch `^\((\d+)\)\s*(.*)$` $note 1 -}}
+      {{- $mark = index . 0 1 -}}
+      {{- $note = index . 0 2 -}}
+      {{- $marks = true -}}
+    {{- end -}}
+    {{- $addr := "" -}}
+    {{- with findRESubmatch `^(0x[0-9A-Fa-f]+|[0-9A-Fa-f]*[0-9][0-9A-Fa-f]*|[0-9A-Fa-f]{6,}):?\s+(\S.*)$` $line 1 -}}
+      {{- $addr = index . 0 1 -}}
+      {{- $line = index . 0 2 -}}
+    {{- end -}}
+    {{- $m := $line -}}
+    {{- $ops := "" -}}
+    {{- with findRESubmatch `^((?:(?:rep|repe|repz|repne|repnz|lock)\s+)?\S+)(?:\s+(.*))?$` $line 1 -}}
+      {{- $m = index . 0 1 -}}
+      {{- $ops = index . 0 2 -}}
+    {{- end -}}
+    {{- $m = replaceRE `\s+` " " $m -}}
+    {{- $mn = math.Max $mn (strings.RuneCount $m) -}}
+    {{- $flow := findRE `(?i)^(call|j[a-z]+|ret[nfq]?|loop[a-z]*|syscall|sysenter|bl|blr|blx|br|b|b\.[a-z]+|cbn?z|tbn?z|invoke-\S+|return\S*|goto\S*|if-\S+)$` $m 1 -}}
+    {{- if in $ops `"` | or (in $ops `'`) -}}
+      {{- $ops = replaceRE `("[^"]*"|'[^']*')` "⟦s⟧$1⟦/⟧" $ops -}}
+    {{- else -}}
+      {{- $ops = replaceRE `\b(0x[0-9A-Fa-f]+|[0-9][0-9A-Fa-f]*h|\d+)\b` "⟦n⟧$1⟦/⟧" $ops -}}
+    {{- end -}}
+    {{- $ops = $ops | htmlEscape | replaceRE `⟦([ns])⟧` `<span class="$1">` | replaceRE `⟦/⟧` `</span>` -}}
+    {{- $rows = $rows | append (dict "addr" $addr "m" $m "flow" $flow "ops" $ops "mark" $mark "note" $note) -}}
+  {{- end -}}
+{{- end -}}
+<figure class="code asm{{ if $marks }} has-marks{{ end }}{{ if not $notes }} no-notes{{ if gt $max 72 }} wide{{ end }}{{ end }}" style="--mn:{{ int $mn }}">
+  {{- with .Attributes.title }}<figcaption>{{ . | markdownify }}</figcaption>{{ end }}
+  <div class="asm-scroll">
+  <table>
+    <tbody>
+    {{- range $rows }}
+      {{- if .gap }}
+      <tr class="gap"><td></td><td colspan="2"><span aria-hidden="true">⋮</span><span class="vh">lines left out</span></td></tr>
+      {{- else }}
+      <tr><td class="a">{{ .addr }}</td><td class="i"><span class="m{{ if .flow }} flow{{ end }}">{{ .m }}</span>{{ with .ops }} {{ . | safeHTML }}{{ end }}</td><td class="c">{{ with .mark }}<span class="mark">{{ . }}</span>{{ end }}{{ .note }}</td></tr>
+      {{- end }}
+    {{- end }}
+    </tbody>
+  </table>
+  </div>
+</figure>

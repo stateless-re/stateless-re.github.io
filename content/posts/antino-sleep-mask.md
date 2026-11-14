@@ -63,7 +63,7 @@ I'm publishing the tenant, client and user IDs and withholding the secrets. The 
 
 The [extractor](https://github.com/stateless-re/tools/tree/main/families/antino) prints the config with the secret redacted unless you pass `--show-secret`:
 
-```text
+```console
 $ python families/antino/extract.py ca14ad03...c9b800.exe
   "config_source": "scan at file offset 0x377400",
   "config": {"tenant_id": "df622d8d-49d3-4dea-9222-a3475dd63ead", ..., "remark": null, "run": false, "launch_mode": "exe"}
@@ -178,7 +178,7 @@ Before I found this function I took the `+0x35 ^0x5A` loop for the session XOR, 
 
 Base64 of a repeating XOR is no protection. The extractor decodes it:
 
-```text
+```console
 $ python families/antino/extract.py --session f0pjfHwcK3oLHgo1BwIDcRk5LyoyCyN0MSIWMyExOFgvdnAUTmN0
   "process_id": "4242", "machine_name": "WS-EXAMPLE", "username": "analyst",
   "platform": "windows x86_64", "fifth_field": ""

@@ -83,7 +83,7 @@ The stamps carry no time zone, so I only use them for order. Zscaler first saw t
 
 Before running anything it downloads, the module checks it against a table:
 
-```text
+```asm
 802  LOAD_CONST  43: '237ba698d7dc8936c43e0e78e7644002375e51e8baf9b3a7d4e18683f871ee31'
 804  LOAD_CONST  44: 'be0329d0795dd62ae587faf97e704bb36413e5c98ddd8fe575f5077db3c84e5f'
 806  LOAD_CONST  45: '253653f645b9c89e7e7e7e967926b0cf0f9adda98ac9d6ba4aa1eb354d80ab9d'

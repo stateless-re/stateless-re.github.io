@@ -92,7 +92,7 @@ The Vidar payloads gave my string emulator nothing. I ran two passes over every 
 
 The way in was a diff. Two pairs of loaders carry payloads with the same code: `1337ed6f`/`2d43d592` and `3286ff47`/`0a2ef2c3`. Comparing each pair byte for byte gives 12 and 11 runs of differences, 507 and 497 bytes, all of them in `.data`. Whatever the builder writes per build lives there. Following code references to that region led to a function that decrypts it field by field with this helper (from `1337ed6f`, with the junk arithmetic around it left in):
 
-```
+```asm
 0xedcdd  movzx    ecx, byte ptr [r9 + rbx]
 0xedce2  xor      edx, edx
 0xedce4  mov      rax, qword ptr [rsp + 0xb0]

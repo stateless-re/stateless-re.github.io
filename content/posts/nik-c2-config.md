@@ -56,7 +56,7 @@ The build path Talos quotes, `build_52b79724a1fc4b8f`, belongs to `30817712`, no
 
 Go stripped the symbols but not the function table, so the names come back: 6,571 functions in `ae38f118`, 261 of them in package `main`. `main.init.0` runs before `main.main` and calls `main.dec` on four string globals, writing each result back over the original. Here is `main.dec`, with the stack check and the empty-string returns trimmed:
 
-```text
+```asm
 0x6d239c: bt   ebx, 0                    ; (1) odd length -> return ""
 0x6d23ac: call encoding/hex.DecodeString ; (2)
 ...
@@ -107,7 +107,7 @@ Two defaults show the builder at work. If the masquerade name is empty or still 
 
 `main.aesEncrypt` loads the seed string, converts it to a byte slice and calls `crypto/sha256.Sum256`, then `aes.NewCipher` on the 32-byte result and GCM with a 12-byte nonce and 16-byte tag. Nothing hex-decodes the seed first: the key is the hash of the 64 ASCII characters. Talos's seed checks out:
 
-```text
+```console
 $ python3 -c "import hashlib; print(hashlib.sha256(b'd791dd0ff3228ed29a8d7333d4567be829159c5632ea347780992006f91c5295').hexdigest())"
 4887afc0a574e9419a9695ef083460f58e4ef9a1c40793523ce112251273bdf9
 ```
