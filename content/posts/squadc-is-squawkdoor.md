@@ -201,15 +201,6 @@ That doesn't undermine Check Point's campaign picture, only the label. Check Poi
 
 Three of Check Point's ten SquadC hashes (`715c2066…` and `f44159be…`, both CertFixer.msi, and the loader `054c0ffb…`) are not on MalwareBazaar, so I can't say which backdoor they carry. I don't have the LNK-delivered build PT analyzed, which is where I'd look for the table-driven API hash. I read the configs but contacted none of the hosts, so I don't know what `/register-ip` returns or whether `XlocmwW` is still accepted. And the reading of `0x431790` as "scores the twelve checks against a threshold" rests on PT's description (seven of twelve) plus the table reference. I didn't trace the threshold constant myself.
 
-## Hunting
-
-Look for these:
-
-- a signed `ecmd.exe` running as `hhc.exe` (or as any name other than its own) from a short `Win??` folder under `%LOCALAPPDATA%` or from `%TEMP%`, next to an `MSVCR110.dll` that isn't Microsoft's;
-- a 2 MB private RWX region in that process whose offset `0x400` holds a PE header with `MZ` and `PE\0\0` zeroed (the stub maps the image elsewhere in the buffer and doesn't wipe the copy; I haven't checked whether the backdoor does later);
-- the mutex `Global\squadc_single_instance`, or a `Run` value named `WindowsUpdateAssist`;
-- an HTTPS POST of `{}` to `/register-ip` with the truncated user agent `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36` (no `KHTML` or browser token after it), which is in both images and in the request PT shows.
-
 ## Indicators
 
 | SHA-256 | Role |

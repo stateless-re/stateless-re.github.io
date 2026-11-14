@@ -201,16 +201,6 @@ Talos's report is mostly about the sentences this build carries for language-mod
 - The export behind SHA-1 `f3f8c92b…`.
 - The Gen 1 build (`a42632c6…`). It carries a hex blob of exactly the same length (200,460 characters), a `768:` Ascii85 string and circl's Kyber-512 package in clear, so I think it wraps the same 100,230-byte payload the same way. I didn't decrypt it.
 
-## Hunting
-
-On the host, the strongest single lead is the injection pattern: a 64-bit process starting `C:\Windows\SysWOW64\OpenWith.exe` suspended, writing about 100 KB into it, and writing 7 bytes at its entry point before resuming it. `OpenWith.exe` with a non-Explorer parent and network activity is worth a look on its own. A suspended `SysWOW64\dllhost.exe` started by the same process is a second lead.
-
-The loader's file reads are distinctive together, weak alone: one process opening `ntdll.dll`, `kernel32.dll` and `user32.dll` in `System32` as files several times each, probing `\\.\A3E64E55_fl`, `C:\Users\Public\triage_wallpaper.jpg` and `C:\INTERNAL\__empty`, and enumerating video decoders through `MFTEnumEx` from a DLL that otherwise has nothing to do with media.
-
-Statically, the Gen 2 DLL has 808 consecutive 256-byte permutations in `.rdata`, a 200,460-character lowercase hex string, and length-prefixed Ascii85 strings of the form `12:…`, `16:…` and `768:…`. The permutation tables come from the obfuscator and will appear in other software built with it; the hex blob and the `768:` string together are specific. The decrypted shellcode's hash seed `0x6c6c6a62` with a 31 multiplier is a usable byte pattern (`BA 62 6A 6C 6C`, with `6B D2 1F` starting 13 bytes after the `BA`) for memory scans of the injected process.
-
-On the network, Talos's sandbox runs of the Gen 1 build contacted `plotsafe[.]icu` with random-looking paths and `overexert.systemstatus[.]info/denyexorcist`.
-
 ## Indicators
 
 | SHA-256 | Role |

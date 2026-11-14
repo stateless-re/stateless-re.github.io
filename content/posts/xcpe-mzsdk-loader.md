@@ -231,29 +231,6 @@ I nearly called `dcsdk.100ulife[.]com` a new indicator. A code search turned it 
 - Two of TrendAI's ten `x.cpe` SHA-256 hashes, which neither service had. I didn't look up the 39 SHA-1-length values.
 - Whether [Synthient's write-up](https://synthient.com/blog/the-internals-of-a-badbox-operation) or Plume's gated whitepaper already cover MzSDK. The first returned 403 to my fetch and the second needs a form, so I couldn't read either.
 
-## Hunting
-
-On a device, or in an image of one:
-
-- `/data/data/x.cpe/files/.honor/`. In these builds only MzSDK creates it. `2184177399.jar` is the built-in core; other `<digits>.jar` files are core updates, and `<digits>.apk` files are plugins. `.honor/ss/` holds plugin native libraries. Strong alone.
-- `x.cpe` processes named `x.cpe:AdvService` with network connections, on 6.5.x and 6.6.x builds.
-- Any system app, not only `x.cpe`, signed with SHA-1 `27196e386b875e76adf700e7ea84e4c6eee33dfa`. On a retail device that certificate means test-signed firmware. Strong, and not specific to this botnet.
-- `com.abc.nexus` installed alongside `x.cpe`, or a bound connection from `x.cpe` to the `com.abc.nexus.data` service action.
-
-On the network:
-
-- HTTPS to `dcsdk.100ulife[.]com` with a request body that is all uppercase hex. Strong alone.
-- HTTP POST on port 8000 to `/router/config/mqtt`, `/router/config/acs` or `/router/config/app` (`/cpe/config/mqtt` or `/cpe/config/acs` for 6.5.0) with a JSON body `{"encryption":"..."}`. The [extractor](https://github.com/stateless-re/tools/tree/main/families/xcpe) decrypts the field (`extract.py config`), which turns a proxy log into device serials, MACs and models.
-- DNS for `stb*.anyevonline[.]com`, `mcstb.anyevonline[.]com` or `ott*.szbboys[.]com`.
-
-Statically, in APKs and firmware:
-
-- The resource `com/ocean/zoe/letu.jet`, or the class `com.ocean.zoe.MzEntry`. Strong.
-- The strings `Iz4iWGbzcm2pHjSm` or `DE252F9AC7624D723212E7E70972134D` in a DEX. Strong; neither looks like anything but a key.
-- Any APK that calls a StringFog-style decoder with the literal `"UTF-8"` as its key is worth a second look on its own: it means the strings decode with a fixed key.
-
-The extractor (`extract.py apk`) prints the signer and test-key flag, config key, hosts and MQTT topics for any `x.cpe` build and, where MzSDK is present, the decoded strings, the core's hash, URLs and key; `-o` writes the core jar.
-
 ## Indicators
 
 Files (all read from Hybrid Analysis, or derived from those files):

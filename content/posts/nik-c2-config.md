@@ -237,27 +237,6 @@ It runs on all 20 files in this post and exits 0.
 - The "runtime-updated URLs" tier. In `ae38f118` nothing but `initServerList` writes the server list, so I found no runtime update path in these builds; Talos may have seen it elsewhere.
 - What the panel does with `user_uid`. I only see the agent's side.
 
-## Hunting
-
-Host:
-- Mutexes `Local\NIK_<16 hex>_agent` and `Local\NIK_<16 hex>_wd`, where the hex is the first 8 bytes of SHA-256 over the executable's full path (Threatray lists the mutex shape; the derivation is from `main.exeHash`). Strong alone.
-- A process started with `--watchdog` alongside an identical binary without it. Moderate; the argument is short and generic.
-- Copies named `svchost.exe` outside System32, or names like `svchost23.exe`, `svchost53.exe`, `svchost9999.exe`, `svchostpopa.exe`, `simvol.exe`, `oppo.exe`, `opsec.exe`. Threatray lists the drop paths.
-- `%APPDATA%\NIKPanel\agent.id`, written only when the agent-ID slot decodes to nothing. The 17 decodable builds never write it; on my reading of `5a39bd95`, that build would.
-
-Network:
-- HTTPS to `2.26.51[.]12:443`: the primary of `0fb93dbb` and the default for any build whose primary field is empty or undecodable, such as `5a39bd95`. Agents with a working config don't use it.
-- TLS servers whose certificate SHA-256 equals one of the five pins below. Searching certificate-scan data for those fingerprints can find servers set up for agents I haven't seen.
-- The URL paths `/api/c2/update`, `/api/c2/result`, `/api/c2/screen`, `/api/c2/file_chunk`, `/api/c2/rproxy_up`, `/api/c2/ws`, and POST bodies with Base64 ciphertext under the JSON key `e` next to the agent ID in clear (both from the Talos report).
-- With a capture and the build's AES key, heartbeats (`heartbeatData`, then `encryptPayload`) decrypt to JSON containing `"user_uid":"7b85683a-c3e6-43c2-9bfb-583377ada5f6"` for every build whose config decodes (not `5a39bd95`).
-
-Static:
-- Hex strings that decode with the rolling `NIK` key to a URL starting with `https`. Short, cheap to test, and they survive symbol renaming. Strong in combination with a Go PE.
-- The literal `{{SERVER_FINGERPRINT}}` next to `server certificate fingerprint mismatch`. Present in all 18 Go builds.
-- `/opt/nik_panel/data/build_` in builds that kept their paths.
-- A file ending in `FCX1` whose appended blob starts with `SX11`: the FileCrypt packer, whatever it wraps.
-- PyInstaller bundles whose script holds Base64 PE files plus a text starting `GAME VERIFYED CHECK!`.
-
 ## Indicators
 
 | SHA-256 | Role |

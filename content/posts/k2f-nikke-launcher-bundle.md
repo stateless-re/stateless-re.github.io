@@ -193,25 +193,6 @@ A tool note: `hybrid search <sha256>` returned no reports for this hash, while `
 
 The bundle never names the operator's endpoint; the delivery URL and the exfiltration path come from Bitdefender's capture and MotherSphere's analysis of the DLL. I don't know what the `download_tips_view` layout is used for in an unmodified launcher, which would settle what the hidden window is. The October 23 bundle MotherSphere lists (`60fd53ab…`, 165,108 bytes) isn't on MalwareBazaar or Hybrid Analysis, so I couldn't diff two builds or test the decoder on a second real one. Neither is the DLL.
 
-## Hunting
-
-Host:
-- HKCU `Software\Classes\CLSID\{E77CC89B-7401-4C04-8CED-149DB35ADD04}\InprocServer32` with a default value under `User Data\PlatformExperienceHelper\<64 hex>\`. Strong alone. Chrome's own folder of that name is normal; the hash subfolder is not (MotherSphere).
-- Files in the launcher's `log\tinyget` folder that start with `1B 4C 4A 01`, or named `k2f*.lua`. Strong alone.
-- `%TEMP%\k2f-bcreds-<unix time>-<6 digits>.db` and its `-wal`/`-shm` copies, and screenshots named `k2f_screen_<unix time>_<n>.jpg`. Strong alone, but they are normally deleted right after use (MotherSphere).
-- The launcher process opening `services.exe` for token access, or opening `Google Chromekey1` or `Microsoft Edgekey1` with `NCryptOpenKey`. Strong for any process that isn't the browser or its elevation service.
-- The launcher process reading many developer credential files in a short time (`~\.aws\credentials`, `~\.azure\msal_token_cache.bin`, `.env` files under `source` or `Documents`). Moderate alone; strong next to the above.
-- Child processes of the launcher created with `CREATE_NO_WINDOW` (`exec` passes `0x08000000`). Moderate.
-- The launcher reading its own `psd.dat` is normal and not a lead.
-
-Network (from the reports; the bundle names no host):
-- `analytics.insightjs[.]com`, path `/comm/assets/insight.bundle`, and `89.127.233[.]127` (Bitdefender); `89.126.250[.]172` until about October 21 (MotherSphere).
-- POSTs to `/px/<32 hex>` with a 64-hex bearer token from processes that load the DLL, per the placeholders in `win32.hook` and MotherSphere's DLL notes.
-
-Static:
-- LuaJIT version-1 dumps larger than about 50 KB inside `.log` files (Bitdefender's lead).
-- A Prometheus mixed-encoding array: a constant table where every string starts with one of two characters, in the same prototype as one 64-entry and one 85-entry character-to-integer table. Weak alone, since Prometheus is a general tool; the [decoder](https://github.com/stateless-re/tools/tree/main/families/k2f) confirms in one run and reports `K2F_LUA_BUILD` when it is set.
-
 ## Indicators
 
 | SHA-256 | Role |

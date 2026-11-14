@@ -200,29 +200,6 @@ The three builds I decompiled hide some of their strings behind small helper fun
 - Unit 42's config is 258 bytes long. None of the five here is: their lengths are 225, 257, 259, 260 and 266 bytes. Theirs comes from another file.
 - Who controls the two tenants.
 
-## Hunting
-
-On hosts:
-
-- An Antino executable started with three arguments, where the first is `%TEMP%\tmp_` plus 6 alphanumeric characters plus `.dat`, the second is `true` or `false`, and the third is 6 alphanumeric characters. Parent and child are the same image. I've shown this in `40e7e77a` only, but where it applies it's specific; the file is deleted after it's read, so look for the process creation, not the file.
-- A private region that is `PAGE_EXECUTE_READWRITE` while the shellcode runs and `PAGE_READWRITE` while it sleeps, flipping back on access violations that a vectored handler resolves. The two earliest builds also suspend every other thread in the process each time the shellcode sleeps. Both are generic sleep-mask behavior, so treat them as a lead to pair with another, not an answer.
-- Because the mask has no key, a masked region holds the same bytes on every host. If you know the shellcode, you can compute what it looks like masked (`5b 39 17 1a fb` for `fc 48 83 e4 f0`) and search for that in `PAGE_READWRITE` private memory.
-- From Talos's description of the install: `%LOCALAPPDATA%\Windows GatherOSStateKit\` with an HKCU Run value, and the Microsoft-signed `GatherOsState.exe` sideloading an `slc.dll`. A copy of that binary running from a user-writable directory next to an `slc.dll` is worth a look.
-
-On the network, if you can see inside TLS to Microsoft 365:
-
-- Token requests to `login.microsoftonline[.]com/df622d8d-49d3-4dea-9222-a3475dd63ead/oauth2/v2.0/token` or `.../8f14bf5c-c0d4-40b9-9033-2f43870d29b1/...` with one of the three client IDs in the Indicators table. In Entra sign-in logs of your own tenant you won't see these (the app lives in the operator's tenant), so this is a proxy or TLS-inspection search.
-- Graph requests for the three user IDs. With app-only credentials there is no `/me`, so I expect them under `/users/<user_id>/`; I didn't find that path as a literal string. Also OneDrive paths with `:/antino/heartbeats/`, `:/antino_uploads/` or `:/antino_downloads/`, and mail filters on `subject eq 'command_req_...'`.
-
-In files:
-
-- A PE section named `.cfg` of exactly 0x10000 bytes, nearly all zero, whose first four bytes are a small little-endian length and whose next two are `D0 EF`. That one check found the config in all four PE files and, as a raw byte scan, in the dump.
-- PDB names `slc_template.pdb` and `antino_client_template.pdb`, source paths under `D:\a\antino\antino\`, and the strings `command_req_`, `command_res_` and `:/antino/heartbeats/`.
-- `KxWNF` next to a standard Base64 alphabet marks the October standalone builds; `5555555555555555` and `ZZZZZZZZZZZZZZZZ` within 0x50 bytes of each other are in all five (adjacent in three; weak alone).
-- Check what your sandbox or repository calls these files. Two of the five are labeled `RustyStealer` on MalwareBazaar.
-
-The [extractor](https://github.com/stateless-re/tools/tree/main/families/antino) takes EXEs, DLLs and memory dumps and prints the config (secret redacted unless `--show-secret`), the PE build details and the markers above; `--session` decodes October session IDs.
-
 ## Indicators
 
 Files (all on MalwareBazaar):

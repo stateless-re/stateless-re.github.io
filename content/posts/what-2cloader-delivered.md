@@ -13,7 +13,7 @@ toc: true
 
 The twelve payloads I unpacked from 2CLoader in [the previous post](/2026/2cloader-keys-its-payload-to-its-own-padding/) are eight Vidar builds and four Remus builds. Seven of the Vidar builds look for their C2 server somewhere I haven't seen in any earlier Vidar report. Five use a profile on the Epic Games developer community, and two use a Fandom user profile, alongside the Telegram channels and Steam profiles Vidar is known for. The file that MalwareBazaar tags `njrat` is Vidar too, the oldest build in the set, with version 2.8 in its config.
 
-That post stopped at the payloads: it decrypted them, listed their hashes and used MalwareBazaar's tags as stand-ins for family names. This one identifies each payload from its own code and data, extracts every configuration, and turns the result into indicators and hunting leads. As before, nothing was executed. Configs were read from the files and the decryption routines reimplemented in Python.
+That post stopped at the payloads: it decrypted them, listed their hashes and used MalwareBazaar's tags as stand-ins for family names. This one identifies each payload from its own code and data, extracts every configuration, and turns the result into indicators. As before, nothing was executed. Configs were read from the files and the decryption routines reimplemented in Python.
 
 ## What I found
 
@@ -167,18 +167,6 @@ The first is the Epic Games developer community, the second a Fandom wiki accoun
 ## What I couldn't determine
 
 I didn't open any of the 13 dead-drop pages or query the Ethereum contract. That would mean touching the operator's infrastructure, and the answers would describe today, not the build dates. So the Vidar C2 servers themselves are unknown here, and the Remus Ethereum fallback is known only as a contract and a selector. The 15 bytes in front of each Vidar key differ per build, and I don't know what they are. I didn't reimplement Vidar's string VM, so the Vidar strings, including the anchor parser, are taken from Rapid7's and Zscaler's descriptions and not read by me. For Remus, my emulator recovered one RPC endpoint per build; other reports list as many as seven providers, and I can't rule out more in strings my emulator didn't reach. What `exp` carries and what the shared tag represents on the operator's side are open as well.
-
-## Hunting
-
-To extract configs: Gen's extractor for Vidar, and for Remus [`families/remus`](https://github.com/stateless-re/tools/tree/main/families/remus) in my tools repository, which prints the C2 slots, the Ethereum contract, the selector and the tag as JSON (`python extract.py PAYLOAD`). It finds the key by the `lea rdx` / `lea r8` pair that passes key and nonce to the cipher setup, and needs no per-build constants.
-
-For hunting on the network and on hosts:
-
-- A non-browser process requesting `dev.epicgames[.]com/community/api/user_profiles/profile.json?hash_id=` or `community.fandom[.]com/wikia.php?controller=UserProfile&method=getUserData`, or a Steam profile or Telegram channel page, followed by a connection to an address that appears in the response.
-- A JSON-RPC `eth_call` to `0x999941b74F6bbc921D5174A5b29911562cd2D7CF` with data `0xc2fb26a6`, from anything that isn't a wallet.
-- Plain HTTP with a `Host: github.com` header that doesn't match the server (CIS reported Remus forging `github.com` or `microsoft.com`). In this set the real hosts are `.shop`, `.top`, `.click` and `.site` names on ports between 5000 and 9100.
-- A semaphore named `\BaseNamedObjects\03473d3f2d528ba787191417a6e1e5f0`.
-- The three Vidar User-Agents above: two malformed, one a 2014 macOS Firefox string coming from Windows.
 
 ## Indicators
 

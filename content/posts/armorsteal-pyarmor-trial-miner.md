@@ -200,24 +200,6 @@ The other one was trusting the report's task table. I had written "SysCheckX lau
 - Who the port-8880 proxies pay. The wallets behind them are held by the proxy, not in the config.
 - What, if anything, launches `test20.py`, the fake notifications and the 2025 stealer scripts in these builds.
 
-## Hunting
-
-Host:
-- Scheduled tasks `SysCheck2` (`conhost.exe --headless cmd /c … python.exe SysMon.py`) and `SysCheckX` (SYSTEM, at startup, 45-second delay, `python.exe xm_handler.py`), both with no execution time limit. Strong.
-- A Python interpreter running from `C:\Windows\SystemHealth\Update\`, `…\Update\nig\` or `…\Update\getthem\`. Strong; Python has no reason to live there.
-- `xmrig.exe` under `C:\Windows\SystemHealth\Update\xmrig-v2\`, and the files `xmrig_installed.hash`, `machine_id.txt`, `global_version.txt`, `onetime_version.txt` next to `SysMon.py`.
-- Defender exclusion path `C:\Windows` together with exclusion process `xmrig.exe`, added by PowerShell whose parent is `python.exe`. The path exclusion alone is strong: excluding all of `C:\Windows` turns off scanning for most of the operating system, and I can't think of a product that needs it.
-- Defender exclusions read by `powershell -NoProfile -ExecutionPolicy Bypass -Command (Get-MpPreference).ExclusionPath` once a minute from a SYSTEM `python.exe`.
-- A miner that dies whenever Task Manager or Process Explorer opens and comes back when it closes. Watch from a tool that isn't on the list, or under a renamed copy of one that is.
-- Static: any `.py` file whose first or second line is a `# Pyarmor … (trial), 000000` comment, outside a developer's own tree. The trial header is weak alone, since legitimate projects use the trial too, but the key is shared, so those files can be decrypted on the spot with 1shot.
-
-Network:
-- `GET /downloadables/configf.json?_=<milliseconds>` with `python-requests` as the user agent, against any of the four C2 domains, and the paths Zscaler lists (`/receive_infof`, `/get-global`, `/get-onetime-code/`, `/black-watch/`, `/infame/receive/`).
-- Stratum to port 8880 on the proxy hosts below, or to `auto.c3pool[.]org:13333` with either wallet.
-- A download from `github.com/xaitax/Chrome-App-Bound-Encryption-Decryption/releases` by `python.exe`.
-
-The [extractor](https://github.com/stateless-re/tools/tree/main/families/armorsteal) pulls these values from new builds once 1shot has decrypted them.
-
 ## Indicators
 
 | SHA-256 | file | role |

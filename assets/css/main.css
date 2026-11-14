@@ -23,9 +23,9 @@
   --sans: "Sofia Sans", "DIN Next", "Helvetica Neue", Arial, sans-serif;
   --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 
-  --measure: 42rem;
-  --rail: 15rem;
-  --gap: 4rem;
+  --measure: 46rem;
+  --rail: 12.5rem;
+  --gap: 2.5rem;
   --frame: calc(var(--measure) + var(--gap) + var(--rail));
   --pad: clamp(1.25rem, 4vw, 2rem);
 
@@ -588,29 +588,50 @@ main { padding-bottom: clamp(4rem, 10vw, 7rem); }
 .prose figure { margin-inline: 0; }
 .prose figcaption { font-size: .95rem; color: var(--soft); margin-top: .5rem; }
 
-.prose .table-wrap { overflow-x: auto; margin-top: 1.5em; }
-.prose .table-wrap + * { margin-top: 1.5em; }
+/* tables: a header band in the code panel's colour, rows you can follow
+   with the pointer, and code set to the same visual size as the text */
+.prose .table-wrap {
+  overflow-x: auto;
+  margin-top: 1.75em;
+  /* a shade at whichever edge still has columns beyond it */
+  --shade: color-mix(in srgb, var(--ink) 16%, transparent);
+  background:
+    linear-gradient(var(--paper), var(--paper)) left / 1.5rem 100% no-repeat local,
+    linear-gradient(var(--paper), var(--paper)) right / 1.5rem 100% no-repeat local,
+    linear-gradient(to right, var(--shade), transparent) left / .8rem 100% no-repeat scroll,
+    linear-gradient(to left, var(--shade), transparent) right / .8rem 100% no-repeat scroll;
+  scrollbar-width: thin;
+  scrollbar-color: var(--dim) transparent;
+}
+.prose .table-wrap + * { margin-top: 1.75em; }
 .prose table {
   width: 100%;
   border-collapse: collapse;
   font-size: 1rem;
-  line-height: 1.4;
+  line-height: 1.45;
   font-variant-numeric: tabular-nums lining-nums;
 }
 .prose th, .prose td {
   text-align: left;
-  vertical-align: baseline;
-  padding: .5rem 1.25rem .5rem 0;
+  vertical-align: top;
+  padding: .6rem .75rem;
   border-bottom: 1px solid var(--rule);
 }
-.prose th:last-child, .prose td:last-child { padding-right: 0; }
 .prose th {
+  font-size: .92rem;
   font-weight: 700;
   white-space: nowrap;
+  vertical-align: bottom;
+  background: var(--panel);
   border-bottom-color: var(--ink);
 }
-.prose td code, .prose th code { padding: 0; background: none; }
+.prose tbody tr:hover td { background: color-mix(in srgb, var(--panel) 55%, transparent); }
+.prose td code, .prose th code { padding: 0; background: none; font-size: .88em; }
 .prose td code { white-space: nowrap; overflow-wrap: normal; }
+@media (max-width: 45.99rem) {
+  .prose table { font-size: .95rem; }
+  .prose th, .prose td { padding: .5rem .65rem; }
+}
 
 /* ---------- code ---------- */
 

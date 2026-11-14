@@ -228,26 +228,9 @@ The server's half. Stages 1 to 3 exist only in the reply to the download URL, an
 
 Attribution: MalwareBazaar's `TamperedChef` tag is the submitter's label. Unit 42's [TamperedChef cluster write-up](https://unit42.paloaltonetworks.com/tracking-tampered-chef-clusters/) describes the same kind of business: fake PDF and productivity tools signed with certificates obtained through shell companies and renamed existing companies. It names no FrauPDF, The PDF Soft or this domain, and the one packaging it describes in detail is different (a Neutralinojs calendar app in a 7z self-extracting archive). I don't have enough to tie this sample to any of them.
 
-## Hunting
+## The extractor
 
 The [extractor](https://github.com/stateless-re/tools/tree/main/samples/ecaa3ca51c1e) prints the decoded strings, rebuilt URLs and embedded files for this installer. It also decrypts a captured download blob into stage 1 (`--blob`), decodes a `uid` into product names (`--uid`), and checks a name list against the hash tables (`--names`). It parses only.
-
-Host:
-
-- A process whose image name ends in `_NNNNNN.exe`, signed but with an invalid digest, writing `%LOCALAPPDATA%\Programs\FrauPDF\fraupdf.exe` and `Uninstall.exe`, and an uninstall key `HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\FrauPDF` with publisher "The PDF Soft". These are strong for this build and trivial to change in the next.
-- A 32-bit .NET process that makes non-image memory executable after an HTTPS download, without loading a DLL from disk. This is the behavior that matters, and it survives a rename. On its own it is noisy (some legitimate .NET apps do JIT-like things), so pair it with the rest.
-- A window class `FrauPDF.FetchHud.v2` or `FrauPDF.RibbonWizard.v2`, or a thread named `FrauPDF.Inst.Watchdog`. Strong, build-specific.
-- A crash log `%TEMP%\FrauPDF.Inst.crash.txt`. Weak but cheap.
-
-Network:
-
-- HTTPS to `thepdfsoftsetup[.]com` with a query string of exactly `ver`, `chan`, `lang`, `arch`, `build` (4, 3, 3, 3 and 3 hex characters), optionally `uid` (8 hex), and `p5el=b0663`. The shape is a good lead even if the host changes. Requests send the bare User-Agent `Mozilla/5.0` and bypass the system proxy.
-- Two GETs to the same host about a second apart, the second one carrying `uid`, answered by a large binary body whose last 4 bytes give its own length minus 4.
-
-Static:
-
-- A .NET installer with a manifest resource whose first two bytes are a small little-endian length, followed by a header that XOR-decodes to a short string such as `lic…` and DES parameters. Babel-style string protection uses this shape; seeing it inside a "setup" binary is unusual.
-- The constants `0x95000000` and `0x60000` near a bit loop, `0xC6E39BD8` as an XOR on arrays of `uint32`, and the strings `cx1`, `ac`, `dc` as export names passed to a custom `GetProcAddress`.
 
 ## Indicators
 

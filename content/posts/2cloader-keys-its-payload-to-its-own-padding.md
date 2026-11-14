@@ -239,16 +239,6 @@ This is build telemetry for a service, with a build ID, a build time and the pay
 
 Eight of the 20 reported hashes aren't on MalwareBazaar, so the counts above describe twelve samples, not the family. I didn't analyze the payloads, so the family names are borrowed labels. No sample here uses the RunPE path or the .NET path (`fl` is 0 everywhere), so I took the report's description of both and of the remote-process hooks without reading that code. I don't know whether the 0x44 relation between the two XOR keys is designed or an accident of how the builder picks them. And since nothing ran, I can't say whether `aware-cr1[.]com` still answers.
 
-## Hunting
-
-The loader's strings and behavior give these leads:
-
-- A Run or RunOnce value, or a scheduled task, named `SecurityHealthService.exe` that points outside `System32`, and a task named `WindowsSecurityHealth` with an hourly repetition.
-- `schtasks.exe /create /tn … /xml` with an XML file named `~st` plus 8 hex digits and `.xml`.
-- `HKCU\Environment\UserInitMprLogonScript` or the `Load` value under `HKCU\Software\Microsoft\Windows NT\CurrentVersion\Windows` being set at all.
-- A non-browser process posting `application/octet-stream` to `/api/beacon` with a Chrome 127 user agent.
-- Statically: an x64 PE whose Authenticode digest doesn't match, and whose `.text` has no `CC CC` anywhere. Either is weak alone; together they are worth a look.
-
 ## Indicators
 
 | SHA-256 | Role |
