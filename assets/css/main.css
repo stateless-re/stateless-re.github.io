@@ -505,11 +505,6 @@ main { padding-bottom: clamp(4rem, 10vw, 7rem); }
   border-left-color: var(--mark);
 }
 
-.toc.yield { opacity: 0; visibility: hidden; }
-@media (prefers-reduced-motion: no-preference) {
-  .toc { transition: opacity .15s, visibility .15s; }
-}
-
 @media (min-width: 68rem) {
   .has-toc {
     display: grid;
@@ -664,15 +659,12 @@ code, pre, kbd { font-family: var(--mono); font-feature-settings: "liga" 0, "cal
   .prose pre { padding: .85rem 1rem; }
 }
 
-/* a block with lines longer than the measure grows into the margin, as far
-   as the frame; only past that does it scroll */
-@media (min-width: 68rem) {
-  .prose .code.wide {
-    width: max-content;
-    min-width: 100%;
-    max-width: var(--frame);
-    z-index: 1;
-  }
+/* a terminal line is one long sentence, not columns: it wraps, and the
+   continuation hangs under the command */
+.prose .code .language-console {
+  display: block;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 /* sits on the block's top edge, on the paper, so it never covers a line */

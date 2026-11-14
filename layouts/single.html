@@ -40,7 +40,6 @@
       fit();
       document.addEventListener("DOMContentLoaded", function () {
         var links = {}, heads = [], current = null, queued = false;
-        var wides = document.querySelectorAll(".code.wide");
         toc.querySelectorAll('a[href^="#"]').forEach(function (a) {
           var h = document.getElementById(decodeURIComponent(a.hash.slice(1)));
           if (h) { links[h.id] = a; heads.push(h); }
@@ -55,12 +54,6 @@
           if (heads.length && window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4) {
             hit = heads[heads.length - 1];
           }
-          var tr = toc.getBoundingClientRect(), under = false;
-          for (var j = 0; j < wides.length && !under; j++) {
-            var r = wides[j].getBoundingClientRect();
-            under = r.right > tr.left && r.bottom > tr.top && r.top < tr.bottom;
-          }
-          toc.classList.toggle("yield", under && wide.matches);
           if (hit === current) return;
           if (current) links[current.id].removeAttribute("aria-current");
           if (hit) links[hit.id].setAttribute("aria-current", "location");
