@@ -1,6 +1,6 @@
 ---
 title: "Antino's October sleep mask answered every access violation in the process"
-date: 2026-11-14
+date: 2026-11-14T10:58:15+00:00
 slug: "antino-sleep-mask"
 description: "Five Antino builds from MalwareBazaar, read statically: the Microsoft 365 configs that the vendor reports redacted (secrets still withheld), the sleep-mask cipher Talos left unnamed and how its handler changed during October, the Gen1 session-ID key, and the command-line mode that the Rhai engine exists for."
 tags: ["antino", "uat-11587", "rust", "sleep-mask", "microsoft-graph", "config-extraction", "windows"]

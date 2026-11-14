@@ -1,6 +1,6 @@
 ---
 title: "Twenty NIK C2 files, one user ID, and a build that can't read its own config"
-date: 2026-11-14
+date: 2026-11-14T11:52:40+00:00
 slug: "nik-c2-config"
 description: "All eight NIK C2 hashes from the Talos report plus twelve more from MalwareBazaar, read statically: the config XORed with the string \"NIK\", the key that is SHA-256 of the seed's text, how the certificate pin and the fallback address really work, a user ID shared by every build, a v2 build whose protected config can't decode, two delivery wrappers, and an extractor."
 tags: ["nik-c2", "nikrat", "go", "config-extraction", "certificate-pinning", "windows"]

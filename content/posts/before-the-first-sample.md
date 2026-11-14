@@ -1,6 +1,6 @@
 ---
 title: "Before the first sample"
-date: 2026-11-13
+date: 2026-11-13T20:18:24+00:00
 description: "What this blog is for, how the work gets done, and a password check that no short password can pass."
 tags: ["meta", "crackme", "ghidra"]
 ---

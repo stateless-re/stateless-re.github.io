@@ -1,6 +1,6 @@
 ---
 title: "Three x.cpe builds hide a second loader, and its string key is \"UTF-8\""
-date: 2026-11-14
+date: 2026-11-14T19:45:28+00:00
 slug: "xcpe-mzsdk-loader"
 description: "Eight builds of x.cpe, the preinstalled agent behind the XCPE TV-box botnet, read statically: one AES-CFB config key in all of them, four signed with Android's public test platform key, and in three of them an embedded ad loader (MzSDK) whose strings, core jar and C2 protocol come apart with keys it carries in the clear."
 tags: ["xcpe", "x.cpe", "mzsdk", "moyu", "android", "android-tv", "supply-chain", "stringfog", "dynamic-code-loading"]

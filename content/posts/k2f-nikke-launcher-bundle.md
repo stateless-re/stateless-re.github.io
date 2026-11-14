@@ -1,6 +1,6 @@
 ---
 title: "The NIKKE launcher's k2f agent decrypts the saved login with a key made from the MAC address"
-date: 2026-11-14
+date: 2026-11-14T12:58:51+00:00
 slug: "k2f-nikke-launcher-bundle"
 description: "The LuaJIT bundle delivered through the NIKKE PC launcher, read from its bytecode: the Prometheus parameters behind its string table and a decoder that reads them from the bytecode instead of hard-coding them, the TEA cipher and MAC-derived key that creds uses on the launcher's saved login, a launcher popup moved off-screen, the k2f_chan protocol field by field, and the 37 token detectors in keyscan."
 tags: ["k2f", "luajit", "lua", "prometheus", "credential-theft", "supply-chain", "windows"]

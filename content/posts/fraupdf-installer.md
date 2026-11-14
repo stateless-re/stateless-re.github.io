@@ -1,6 +1,6 @@
 ---
 title: "FrauPDF's installer checks its own file name before it asks for a payload"
-date: 2026-11-14
+date: 2026-11-14T11:48:39+00:00
 slug: "fraupdf-installer"
 description: "A signed .NET installer for a PDF reader I found no write-up for: the decoy it installs, the four-step check it runs first (security products, file name, a server's digit-parity answer), the URL scheme that disguises tokens as version fields, the uid that hides an antivirus bitmask, and the three-stage in-memory DLL chain it maps from the server's reply."
 tags: ["fraupdf", "dotnet", "loader", "malvertising-lure", "string-decryption", "config-extraction", "windows"]

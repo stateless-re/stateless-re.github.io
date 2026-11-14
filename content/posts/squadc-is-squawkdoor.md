@@ -1,6 +1,6 @@
 ---
 title: "SquadC is SquawkDoor, and one of its installers is SparrowDoor"
-date: 2026-11-13
+date: 2026-11-13T23:43:30+00:00
 slug: "squadc-is-squawkdoor"
 description: "Check Point's SquadC backdoor from the fake Chrome certificate campaign is the SquawkDoor that Positive Technologies described in August. Here are its loader, both config versions, three installers' configs as text, and the SQD1 framing. Two files listed as SquadC turn out to be SparrowDoor."
 tags: ["squawkdoor", "squadc", "sparrowdoor", "famoussparrow", "dll-sideloading", "config-extraction", "windows"]

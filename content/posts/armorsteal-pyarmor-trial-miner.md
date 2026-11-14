@@ -1,6 +1,6 @@
 ---
 title: "Armorsteal's Pyarmor key is the shared trial key, and its boot task starts a miner"
-date: 2026-11-14
+date: 2026-11-14T13:37:32+00:00
 slug: "armorsteal-pyarmor-trial-miner"
 description: "Armorsteal's three Pyarmor-protected packages opened statically with the shared trial key: a SYSTEM boot task that runs an XMRig handler instead of the remote access module, two miner configs and wallets, the hash table that pins every package, the task-signing key, the clipper's 13 wallets, and a config extractor."
 tags: ["armorsteal", "pyarmor", "python", "xmrig", "clipper", "seo-poisoning", "windows"]

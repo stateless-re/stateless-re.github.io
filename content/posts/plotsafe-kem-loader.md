@@ -1,6 +1,6 @@
 ---
 title: "PLOTSAFE's post-quantum loader always picks salt number 3"
-date: 2026-11-14
+date: 2026-11-14T18:28:19+00:00
 slug: "plotsafe-kem-loader"
 description: "The PLOTSAFE Go loader from Talos's AI-analysis-evasion report, emulated statically: 23 environment checks that corrupt a key instead of exiting, a Kyber-512 decapsulation, a salt index that a Go Sum() call pins to 3, 25 AES-GCM chunks, and the 32-bit shellcode and stealer it injects into OpenWith.exe."
 tags: ["plotsafe", "acrstealer", "go", "garble", "emulation", "kyber", "process-injection", "windows"]

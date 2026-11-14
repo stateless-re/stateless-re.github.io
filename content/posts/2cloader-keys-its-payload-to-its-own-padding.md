@@ -1,6 +1,6 @@
 ---
 title: "2CLoader keys its payload to its own padding"
-date: 2026-11-13
+date: 2026-11-13T21:06:39+00:00
 description: "Twelve 2CLoader builds unpacked without running one: how the builder rewrites the gaps between functions so every build gets a different AES key, and what the 18 identity hooks fake."
 tags: ["2cloader", "loader", "config-extraction", "windows"]
 sample:

@@ -1,6 +1,6 @@
 ---
 title: "What 2CLoader delivered: Vidar on Epic Games profiles, Remus on Ethereum"
-date: 2026-11-13
+date: 2026-11-13T22:52:02+00:00
 slug: "what-2cloader-delivered"
 description: "The twelve payloads from the 2CLoader post, identified and configs extracted without running them: eight Vidar builds that look up their C2 on Telegram, Steam, Epic Games and Fandom profiles, and four Remus builds that share one build tag and one Ethereum contract."
 tags: ["vidar", "remus", "2cloader", "config-extraction", "dead-drop-resolver", "windows"]
