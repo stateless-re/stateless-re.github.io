@@ -12,6 +12,13 @@
   --mark: #ffdd3c;         /* highlighter */
   --mark-ink: #18224a;
   --literal: #7d4b00;      /* strings and numbers in code */
+  --syn-kw: #6b2fb3;       /* syntax: keywords */
+  --syn-type: #0a6b73;     /* types, classes, builtins */
+  --syn-fn: #1f4fc4;       /* functions, JSON keys */
+  --syn-str: #2d6a1f;      /* strings */
+  --syn-num: #a33f00;      /* numbers, constants */
+  --syn-pre: #a2245b;      /* preprocessor, attributes */
+  --syn-op: #4a5684;       /* operators */
 
   --sans: "Sofia Sans", "DIN Next", "Helvetica Neue", Arial, sans-serif;
   --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
@@ -51,6 +58,13 @@
     --mark: #ffdd3c;
     --mark-ink: #0f1f3d;
     --literal: #f0d48a;
+    --syn-kw: #c7a6ff;
+    --syn-type: #6fd3cc;
+    --syn-fn: #8db4ff;
+    --syn-str: #a9df8e;
+    --syn-num: #f3b27a;
+    --syn-pre: #ff92c2;
+    --syn-op: #b9c4dd;
   }
 }
 
@@ -67,6 +81,13 @@
   --mark: #ffdd3c;
   --mark-ink: #0f1f3d;
   --literal: #f0d48a;
+  --syn-kw: #c7a6ff;
+  --syn-type: #6fd3cc;
+  --syn-fn: #8db4ff;
+  --syn-str: #a9df8e;
+  --syn-num: #f3b27a;
+  --syn-pre: #ff92c2;
+  --syn-op: #b9c4dd;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -622,11 +643,17 @@ code, pre, kbd { font-family: var(--mono); font-feature-settings: "liga" 0, "cal
   .prose pre { font-size: .78rem; padding: .85rem 1rem; }
 }
 
-/* syntax: mostly ink, one colour for literals, quiet comments */
-.chroma .c, .chroma .c1, .chroma .cm, .chroma .cs, .chroma .ch, .chroma .cp, .chroma .cpf { color: var(--soft); font-style: italic; }
-.chroma .k, .chroma .kd, .chroma .kn, .chroma .kr, .chroma .kc, .chroma .kp, .chroma .kt { font-weight: 700; }
-.chroma .s, .chroma .s1, .chroma .s2, .chroma .sb, .chroma .sc, .chroma .sd, .chroma .se, .chroma .sh, .chroma .si, .chroma .sx, .chroma .sr, .chroma .ss,
-.chroma .m, .chroma .mb, .chroma .mf, .chroma .mh, .chroma .mi, .chroma .il, .chroma .mo { color: var(--literal); }
+/* syntax: one hue per role, all from --syn-* (AA contrast on --panel in both themes) */
+.chroma .c, .chroma .c1, .chroma .cm, .chroma .cs, .chroma .ch { color: var(--soft); font-style: italic; }
+.chroma .cp, .chroma .cpf, .chroma .na, .chroma .nd, .chroma .nl { color: var(--syn-pre); }
+.chroma .k, .chroma .kd, .chroma .kn, .chroma .kr, .chroma .kp, .chroma .kv, .chroma .ow { color: var(--syn-kw); font-weight: 600; }
+.chroma .kt, .chroma .nc, .chroma .nn, .chroma .nb, .chroma .bp, .chroma .ne { color: var(--syn-type); }
+.chroma .nf, .chroma .fm, .chroma .nt, .chroma .py { color: var(--syn-fn); }
+.chroma .s, .chroma .s1, .chroma .s2, .chroma .sa, .chroma .sb, .chroma .sc, .chroma .sd, .chroma .se, .chroma .sh,
+.chroma .si, .chroma .sx, .chroma .sr, .chroma .ss, .chroma .dl { color: var(--syn-str); }
+.chroma .se { font-weight: 600; }
+.chroma .m, .chroma .mb, .chroma .mf, .chroma .mh, .chroma .mi, .chroma .il, .chroma .mo, .chroma .kc, .chroma .no { color: var(--syn-num); }
+.chroma .o { color: var(--syn-op); }
 .chroma .err { color: inherit; background: none; }
 .chroma .hl { background: color-mix(in srgb, var(--mark) 35%, transparent); display: block; }
 .chroma .ln, .chroma .lnt { color: var(--soft); margin-right: 1em; user-select: none; }
