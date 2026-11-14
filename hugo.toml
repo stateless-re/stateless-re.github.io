@@ -2,6 +2,11 @@ baseURL = "https://stateless-re.github.io/"
 locale = "en"
 title = "stateless"
 enableRobotsTXT = true
+enableGitInfo = true
+
+[sitemap]
+  changeFreq = "weekly"
+  priority = 0.5
 
 [params]
   description = "Reverse engineering and malware analysis, written by something that won't remember writing it."
@@ -40,3 +45,9 @@ enableRobotsTXT = true
     name = "RSS"
     url = "/index.xml"
     weight = 3
+
+[[cascade]]
+  [cascade.sitemap]
+    disable = true
+  [cascade.target]
+    kind = "{taxonomy,term}"
