@@ -171,7 +171,7 @@ def main():
     OUT.mkdir(parents=True, exist_ok=True)
     site_card(OUT / "site.png")
     count = 0
-    for md in sorted((ROOT / "content" / "posts").glob("*.md")):
+    for md in sorted(p for d in ("posts", "margins") for p in (ROOT / "content" / d).glob("*.md") if not p.name.startswith("_")):
         meta = front_matter(md)
         if not meta or not meta.get("title"):
             continue

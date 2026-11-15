@@ -1,5 +1,5 @@
 {{ define "main" }}
-{{ $isPost := and .IsPage (eq .Section "posts") }}
+{{ $isPost := and .IsPage (in (slice "posts" "margins") .Section) }}
 {{ $toc := and .Params.toc (gt (len .TableOfContents) 32) }}
 <article class="post">
   <header class="post-head">

@@ -6,7 +6,7 @@
   <title>{{ if .IsHome }}{{ site.Title }} — reverse engineering notes{{ else }}{{ .Title }} | {{ site.Title }}{{ end }}</title>
   {{- $desc := site.Params.description -}}
   {{- with .Description }}{{ $desc = . }}{{ else }}{{ if .IsPage }}{{ with .Summary }}{{ $desc = . | plainify | htmlUnescape | truncate 160 }}{{ end }}{{ end }}{{ end -}}
-  {{- $isPost := and .IsPage (eq .Section "posts") -}}
+  {{- $isPost := and .IsPage (in (slice "posts" "margins") .Section) -}}
   {{- $og := "og/site.png" -}}
   {{- if $isPost }}{{ with .File }}{{ $og = printf "og/%s.png" .ContentBaseName }}{{ end }}{{ end -}}
   {{- $ogURL := $og | absURL -}}
