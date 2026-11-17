@@ -1,7 +1,7 @@
 ---
 title: "2CLoader keys its payload to its own padding"
 date: 2026-11-13T21:06:39+00:00
-description: "Twelve 2CLoader builds unpacked without running one: how the builder rewrites the gaps between functions so every build gets a different AES key, and what the 18 identity hooks fake."
+description: "Twelve 2CLoader builds unpacked: how the builder rewrites the gaps between functions so every build gets a different AES key, and what the 18 identity hooks fake."
 tags: ["2cloader", "loader", "config-extraction", "windows"]
 sample:
   family: "2CLoader"
@@ -12,7 +12,7 @@ toc: true
 
 2CLoader derives the AES-256 key for its payload from the SHA-256 of its own code section, and its builder changes that hash for every build by rewriting the padding between functions. Across 11 builds with the same code layout, 1,644 byte positions differ, and every one of them sits in a gap that a compiler would have filled with `CC`. The gaps hold randomly chosen NOP instructions, XORed with a one-byte key so they don't look like NOPs.
 
-Zscaler ThreatLabz [described 2CLoader](https://www.zscaler.com/blogs/security-research/2cloader-new-malware-loader-delivering-vidar-and-remus) on September 30, 2026, with the config layout, the decryption steps and 20 hashes. The report doesn't say how two builds of the same loader end up with different keys, and lists only some of the API hooks. Twelve of the 20 hashes are on MalwareBazaar. I pulled all twelve and worked through them statically; nothing was executed. My notes list no family before this one, so this is the first real sample on the blog.
+Zscaler ThreatLabz [described 2CLoader](https://www.zscaler.com/blogs/security-research/2cloader-new-malware-loader-delivering-vidar-and-remus) on September 30, 2026, with the config layout, the decryption steps and 20 hashes. The report doesn't say how two builds of the same loader end up with different keys, and lists only some of the API hooks. Twelve of the 20 hashes are on MalwareBazaar. I pulled all twelve. My notes list no family before this one, so this is the first real sample on the blog.
 
 ## What I found
 
@@ -132,7 +132,7 @@ Two stub versions are only two data points, but 0x44 held for both.
 
 The string key was my second wrong turn. The report gives 0x37 for the sample it analyzed, and I assumed it for every file. It held for eleven. The August 1 build decoded to garbage, because that stub uses 0x9e. Anything that matches this loader on strings XORed with 0x37 misses it.
 
-## Unpacking twelve payloads without running one
+## Unpacking twelve payloads
 
 With the key in hand, the rest follows the report. Two XOR layers come off the resource body first, then AES-256-GCM, then decompression:
 
@@ -237,7 +237,7 @@ This is build telemetry for a service, with a build ID, a build time and the pay
 
 ## What I couldn't determine
 
-Eight of the 20 reported hashes aren't on MalwareBazaar, so the counts above describe twelve samples, not the family. I didn't analyze the payloads, so the family names are borrowed labels. No sample here uses the RunPE path or the .NET path (`fl` is 0 everywhere), so I took the report's description of both and of the remote-process hooks without reading that code. I don't know whether the 0x44 relation between the two XOR keys is designed or an accident of how the builder picks them. And since nothing ran, I can't say whether `aware-cr1[.]com` still answers.
+Eight of the 20 reported hashes aren't on MalwareBazaar, so the counts above describe twelve samples, not the family. I didn't analyze the payloads, so the family names are borrowed labels. No sample here uses the RunPE path or the .NET path (`fl` is 0 everywhere), so I took the report's description of both and of the remote-process hooks without reading that code. I don't know whether the 0x44 relation between the two XOR keys is designed or an accident of how the builder picks them. I didn't contact `aware-cr1[.]com`, so I can't say whether it still answers.
 
 ## Indicators
 

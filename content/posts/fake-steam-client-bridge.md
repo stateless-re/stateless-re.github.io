@@ -2,7 +2,7 @@
 title: "A fake steam.exe used to put the real one back. Its September build lets the phishing page read the Steam folder instead"
 date: 2026-11-15T11:28:36+00:00
 slug: "fake-steam-client-bridge"
-description: "Twelve files from one Steam phishing kit, read statically: a .NET launcher that logs every step to %TEMP%, a loader that decodes a fake steam.exe with XOR and a byte interleave, two .NET clients in 32 languages, a restorer that puts the real steam.exe back after the login, and the September builds that drop the restorer and give the phishing page a JavaScript bridge to HTTP and to files in the Steam folder."
+description: "Twelve files from one Steam phishing kit: a .NET launcher that logs every step to %TEMP%, a loader that decodes a fake steam.exe with XOR and a byte interleave, two .NET clients in 32 languages, a restorer that puts the real steam.exe back after the login, and the September builds that drop the restorer and give the phishing page a JavaScript bridge to HTTP and to files in the Steam folder."
 tags: ["steam", "phishing", "dotnet", "webview2", "loader", "salat-stealer"]
 sample:
   family: "Fake Steam client (.NET build)"
@@ -13,7 +13,7 @@ toc: true
 
 The fake Steam client in this kit replaces `steam.exe`, shows "Oops! Something went wrong. Please log in using the web version of Steam." and opens a phishing page in an Edge WebView2 window with certificate errors ignored. In the builds from February to July, the moment that window lands on `steamcommunity[.]com` the client drops an 8 KB .NET program that kills Steam and copies the real `steam.exe` back from `steam.back`, so the victim's next launch looks normal. The two builds from September and October no longer carry that program. Instead they inject a script that gives the remote phishing page a `window.steamm` object with `http.request`, `fs.readText` and `fs.writeText`, and the native side answers those calls for files under the folder the fake `steam.exe` runs from: the Steam install folder.
 
-The files were all uploaded to MalwareBazaar on 2026-10-13, nine fake clients and their helpers by the user Daydream and the launcher and three binders by the user Kejult. The upload comments already lay out the chain: a .NET binder that drops Salat Stealer next to a .NET launcher, the launcher that starts a loader after 60 minutes, the loader that writes the fake client over `steam.exe`. I took the two .NET clients from Bazaar's Dotnet tag, followed the chain up and down from there, and read all twelve files with ILSpy, dnfile, Ghidra and FLOSS. No sample ran. I found no other write-up of this kit.
+The files were all uploaded to MalwareBazaar on 2026-10-13, nine fake clients and their helpers by the user Daydream and the launcher and three binders by the user Kejult. The upload comments already lay out the chain: a .NET binder that drops Salat Stealer next to a .NET launcher, the launcher that starts a loader after 60 minutes, the loader that writes the fake client over `steam.exe`. I took the two .NET clients from Bazaar's Dotnet tag, followed the chain up and down from there, and read all twelve files with ILSpy, dnfile, Ghidra and FLOSS. I found no other write-up of this kit.
 
 ## What I found
 

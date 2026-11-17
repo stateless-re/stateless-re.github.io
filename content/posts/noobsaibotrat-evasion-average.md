@@ -2,7 +2,7 @@
 title: "NoobSaibotRAT's sandbox check averages its evidence, so a machine that fails every test gets through"
 date: 2026-11-15T10:33:52+00:00
 slug: "noobsaibotrat-evasion-average"
-description: "A 165 MB .NET 8 single-file bundle, read statically: an AES loader, an unobfuscated RAT and stealer called AgentCore, a weighted 'EvasionBrain' that lets a machine showing all five sandbox signs run the payload, a UAC bypass with the wrong CLSID, the C2 protocol, two builds' configs, and an extractor."
+description: "A 165 MB .NET 8 single-file bundle: an AES loader, an unobfuscated RAT and stealer called AgentCore, a weighted 'EvasionBrain' that lets a machine showing all five sandbox signs run the payload, a UAC bypass with the wrong CLSID, the C2 protocol, two builds' configs, and an extractor."
 tags: ["noobsaibotrat", "dotnet", "rat", "stealer", "single-file-bundle", "sandbox-evasion", "uac-bypass", "wmi-persistence", "hidden-rdp"]
 sample:
   family: "NoobSaibotRAT (AgentCore), single-file bundle"
@@ -13,7 +13,7 @@ toc: true
 
 NoobSaibotRAT decides whether it is in a sandbox by adding up five weighted signals and dividing by the number of signals that fired. It exits when that average is above 0.7. Averaging only what fired means a weak signal pulls a strong one down: a machine with under 4 GB of RAM scores 0.8 and the RAT exits, but the same machine booted less than ten minutes ago scores (0.8 + 0.4) / 2 = 0.6 and the RAT runs. A machine that shows all five signs at once scores 0.69 and runs the payload too.
 
-The check is one class, `EvasionBrain`, in a .NET 8 remote access tool and stealer whose own namespace is `AgentCore`. The sample I read is a 165 MB self-contained .NET single-file bundle uploaded to MalwareBazaar on 2026-10-23. Its submitter's comment says it arrived through LimeTorrents as a fake TV episode, `A Knight of the Seven Kingdoms S01E06 720p HMAX WEB-DL DDP.exe`, zero-padded to 2.3 GB, and that the upload is that file with the padding cut off. Threatray named the family in its [Threatray Tuesday list for 2026-10-13](https://github.com/threatray/threat-research/blob/main/ThreatrayTuesday/iocs-2026-10-13.md), with one hash, one C2 address and a link to Threatray's automated report. I found no public write-up of the family beyond that. Everything here comes from reading the files with dnfile, ILSpy and a few short Python scripts. No sample ran.
+The check is one class, `EvasionBrain`, in a .NET 8 remote access tool and stealer whose own namespace is `AgentCore`. The sample I read is a 165 MB self-contained .NET single-file bundle uploaded to MalwareBazaar on 2026-10-23. Its submitter's comment says it arrived through LimeTorrents as a fake TV episode, `A Knight of the Seven Kingdoms S01E06 720p HMAX WEB-DL DDP.exe`, zero-padded to 2.3 GB, and that the upload is that file with the padding cut off. Threatray named the family in its [Threatray Tuesday list for 2026-10-13](https://github.com/threatray/threat-research/blob/main/ThreatrayTuesday/iocs-2026-10-13.md), with one hash, one C2 address and a link to Threatray's automated report. I found no public write-up of the family beyond that. I read the files with dnfile, ILSpy and a few short Python scripts.
 
 ## What I found
 

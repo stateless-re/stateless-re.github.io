@@ -2,7 +2,7 @@
 title: "Antino's October sleep mask answered every access violation in the process"
 date: 2026-11-14T10:58:15+00:00
 slug: "antino-sleep-mask"
-description: "Five Antino builds from MalwareBazaar, read statically: the Microsoft 365 configs that the vendor reports redacted (secrets still withheld), the sleep-mask cipher Talos left unnamed and how its handler changed during October, the Gen1 session-ID key, and the command-line mode that the Rhai engine exists for."
+description: "Five Antino builds from MalwareBazaar: the Microsoft 365 configs that the vendor reports redacted (secrets still withheld), the sleep-mask cipher Talos left unnamed and how its handler changed during October, the Gen1 session-ID key, and the command-line mode that the Rhai engine exists for."
 tags: ["antino", "uat-11587", "rust", "sleep-mask", "microsoft-graph", "config-extraction", "windows"]
 sample:
   family: "Antino"
@@ -13,7 +13,7 @@ toc: true
 
 The October 14, 2025 build of Antino hides shellcode between sleeps with a keyless byte transform, `rol3((b + 0x35) ^ 0x5A)`, and undoes it from a vectored exception handler that answers every access violation in the process, wherever it happened. Three days later the handler checked the faulting address, and by October 21 the Sleep hook only fired on the shellcode's own thread. Antino is the Rust backdoor that Cisco Talos [tied to UAT-11587](https://blog.talosintelligence.com/china-nexus-uat-11587-targets-government-and-policy-organizations-across-asia-with-antino-backdoor/) on September 30, and that Unit 42 [found delivered through the Falcon browser framework](https://unit42.paloaltonetworks.com/falcon-c2-browser-compromise/) on November 11. Talos describes the mask as the later builds implement it (hooked `Sleep` and `VirtualAlloc`, a handler that "confirms that the fault occurred within the tracked region") and says the hook "encrypts its contents in place" without naming the cipher. Both reports describe the `.cfg` config section; neither publishes the Microsoft 365 identifiers in it.
 
-Five of the twelve Antino hashes in the Talos report are on MalwareBazaar. I read all five statically (Ghidra, pefile, Python; nothing was run). This post covers what the two reports left out, plus a [config extractor](https://github.com/stateless-re/tools/tree/main/families/antino) that also decodes Gen1 session IDs.
+Five of the twelve Antino hashes in the Talos report are on MalwareBazaar. I read all five with Ghidra, pefile and Python. This post covers what the two reports left out, plus a [config extractor](https://github.com/stateless-re/tools/tree/main/families/antino) that also decodes Gen1 session IDs.
 
 ## What I found
 
