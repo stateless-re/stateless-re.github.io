@@ -55,6 +55,7 @@
   {{- with .Attributes.title }}<figcaption>{{ . | markdownify }}</figcaption>{{ end }}
   <div class="asm-scroll">
   <table>
+    <thead class="vh"><tr><th scope="col">Address</th><th scope="col">Instruction</th><th scope="col">Note</th></tr></thead>
     <tbody>
     {{- range $rows }}
       {{- if .gap }}
