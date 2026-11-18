@@ -2,7 +2,7 @@
 title: "What 2CLoader delivered: Vidar on Epic Games profiles, Remus on Ethereum"
 date: 2026-11-13T22:52:02+00:00
 slug: "what-2cloader-delivered"
-description: "The twelve payloads from the 2CLoader post, identified and their configs extracted: eight Vidar builds that look up their C2 on Telegram, Steam, Epic Games and Fandom profiles, and four Remus builds that share one build tag and one Ethereum contract."
+description: "2CLoader delivered eight Vidar builds that find C2 on Telegram, Steam, Epic Games and Fandom profiles, and four Remus builds sharing one Ethereum contract."
 tags: ["vidar", "remus", "2cloader", "config-extraction", "dead-drop-resolver", "windows"]
 sample:
   family: "Vidar, Remus"
@@ -11,27 +11,38 @@ sample:
 toc: true
 ---
 
-The twelve payloads I unpacked from 2CLoader in [the previous post](/2026/2cloader-keys-its-payload-to-its-own-padding/) are eight Vidar builds and four Remus builds. Seven of the Vidar builds look for their C2 server somewhere I haven't seen in any earlier Vidar report. Five use a profile on the Epic Games developer community, and two use a Fandom user profile, alongside the Telegram channels and Steam profiles Vidar is known for. The file that MalwareBazaar tags `njrat` is Vidar too, the oldest build in the set, with version 2.8 in its config.
+The twelve payloads I unpacked from 2CLoader in [the previous post](/2026/2cloader-keys-its-payload-to-its-own-padding/) are eight Vidar builds and four Remus builds. Seven of the Vidar builds look for their C2 server somewhere I haven't seen in any earlier Vidar report. Five use a profile on the Epic Games developer community, and two use a Fandom user profile, alongside the Telegram channels and Steam profiles Vidar is known for.
+
+The file that MalwareBazaar tags `njrat` is Vidar too, the oldest build in the set, with version 2.8 in its config.
 
 That post stopped at the payloads: it decrypted them, listed their hashes and used MalwareBazaar's tags as stand-ins for family names. This one identifies each payload from its own code and data, extracts every configuration, and turns the result into indicators. Configs were read from the files and the decryption routines reimplemented in Python.
 
+Malware Cake Factory had already analyzed one of the four Remus payloads in depth, from a different 2CLoader build; I credit it below where it applies.
+
 ## What I found
 
-- Eight payloads are native x64 Vidar with no import table. Their configs carry versions 2.8, 3.0, 3.1, 3.2 and 3.3, which rise with the loader build dates from August 1 to September 4, 2026. Together they point to 13 distinct dead-drop accounts: five Telegram channels, four Steam profiles, three Epic Games developer profiles and one Fandom profile. Builds share accounts, so the five builds that use Epic Games point to three profiles between them, and the two that use Fandom share one.
-- Two pairs of Vidar payloads are byte-identical except for 507 and 497 bytes in `.data`, where the config lives. The pair whose configs say 3.0 and 3.1 shares the same code, so the version string comes from the builder, not from a code change.
+- Eight payloads are native x64 Vidar with no import table. Their config versions (2.8, 3.0, 3.1, 3.2 and 3.3) rise with the loader build dates, August 1 to September 4, 2026.
+- The eight Vidar builds point to 13 distinct dead-drop accounts: five Telegram channels, four Steam profiles, three Epic Games developer profiles and one Fandom profile.
+- Two pairs of Vidar payloads differ only in the config bytes in `.data`. In one pair the configs say 3.0 and 3.1, so the version string comes from the builder.
 - Gen Digital's public Vidar config extractor reads all eight configs correctly. Rapid7's earlier one finds nothing, because these builds use a 16-byte XOR key instead of the alphabet substitution it expects.
-- The four Remus payloads share one build tag, `03473d3f2d528ba787191417a6e1e5f0` (also the name of the semaphore they use as a run-once lock), and one Ethereum contract. Each carries three ChaCha20-encrypted C2 URLs; eight hosts in total, with `vexdico[.]shop:8539` in all four.
-- No public tool I could find extracted the Remus config statically, so I published one ([`families/remus`](https://github.com/stateless-re/tools/tree/main/families/remus)). Malware Cake Factory had already analyzed one of these four payloads in depth, from a different 2CLoader build; I credit it below where it applies.
+- The four Remus payloads share one build tag and one Ethereum contract. Each carries three ChaCha20-encrypted C2 URLs, eight hosts in total, with `vexdico[.]shop:8539` in all four.
+- No public tool I could find extracted the Remus config statically, so I published one ([`families/remus`](https://github.com/stateless-re/tools/tree/main/families/remus)).
 
 ## Two families, told apart in five minutes
 
-Triage splits the twelve files cleanly. Four are about 225 KB, import 39 to 42 functions from six DLLs (screen capture, COM, desktops) and use the default image base 0x140000000. Eight are 1.1 to 1.4 MB, have an empty import table, a `.data` section whose virtual size is 1.1 to 1.3 MB against 0x1200 bytes on disk, and image bases between 0x110000000 and 0x750000000. The small ones match MalwareBazaar's `RemusStealer` tag on their loaders and the large ones match `Vidar`, with one exception: `06185d74`, tagged `njrat`, belongs with the large group by every measure.
+Triage splits the twelve files cleanly. Four are about 225 KB, import 39 to 42 functions from six DLLs (screen capture, COM, desktops) and use the default image base 0x140000000.
+
+Eight are 1.1 to 1.4 MB, have an empty import table, a `.data` section whose virtual size is 1.1 to 1.3 MB against 0x1200 bytes on disk, and image bases between 0x110000000 and 0x750000000.
+
+The small ones match MalwareBazaar's `RemusStealer` tag on their loaders and the large ones match `Vidar`, with one exception: `06185d74`, tagged `njrat`, belongs with the large group by every measure.
 
 A tag is a label, though. Each family needed evidence from the payload itself, and the two families hide their strings in different ways, so each got its own route in.
 
 ## Remus: three encrypted URLs and a blockchain fallback
 
-The Remus payloads build their strings on the stack and decode them in place, one transform per string, the pattern Gen Digital described when it [first wrote about Remus](https://www.gendigital.com/blog/insights/research/remus-64bit-variant-of-lumma-stealer). I emulated the decode loops in Unicorn, starting at every instruction that loads a 16-byte constant from `.rdata`, and stopping at the first call. That gave about 80 strings per payload, among them `\BaseNamedObjects\`, `Host: github.com`, `hxxps://ethereum-rpc.publicnode[.]com`, a system-information template starting `build:` and `  tag: {tag}`, and `honey@pot[.]com.pst`, the sandbox marker Gen lists.
+The Remus payloads build their strings on the stack and decode them in place, one transform per string, the pattern Gen Digital described when it [first wrote about Remus](https://www.gendigital.com/blog/insights/research/remus-64bit-variant-of-lumma-stealer).
+
+I emulated the decode loops in Unicorn, starting at every instruction that loads a 16-byte constant from `.rdata`, and stopping at the first call. That gave about 80 strings per payload, among them `\BaseNamedObjects\`, `Host: github.com`, `hxxps://ethereum-rpc.publicnode[.]com`, a system-information template starting `build:` and `  tag: {tag}`, and `honey@pot[.]com.pst`, the sandbox marker Gen lists.
 
 The decode loops look worse than they are. Ghidra shows each as mixed boolean-arithmetic, for example:
 
@@ -63,7 +74,9 @@ At (1) the state byte starts at 0xa6, so index 0 comes first. Indices 0 to 2 dec
 {"jsonrpc":"2.0","id":1,"method":"eth_call","params":[{"to":"0x999941b74F6bbc921D5174A5b29911562cd2D7CF","data":"0xc2fb26a6"},"latest"]}
 ```
 
-That is a call to function `0xc2fb26a6` of contract `0x9999…D7CF`. [Malware Cake Factory](https://malwarecakefactory.github.io/malware-analysis/remus-c2-protocol-analysis/) published the same contract and selector in April, and Unit 42 and SpyCloud name the contract as well. At (4) the code hex-decodes the last 64 hex characters of `result` into a UTF-16 string. Malware Cake Factory describes skipping the 128 hex characters of ABI header and decoding the rest. For a C2 string of 32 characters or fewer, the two give the same answer.
+That is a call to function `0xc2fb26a6` of contract `0x9999…D7CF`. [Malware Cake Factory](https://malwarecakefactory.github.io/malware-analysis/remus-c2-protocol-analysis/) published the same contract and selector in April, and Unit 42 and SpyCloud name the contract as well.
+
+At (4) the code hex-decodes the last 64 hex characters of `result` into a UTF-16 string. Malware Cake Factory describes skipping the 128 hex characters of ABI header and decoding the rest. For a C2 string of 32 characters or fewer, the two give the same answer.
 
 The slots are ChaCha20 in its original form: the setup writes `expand 32-byte k`, a 32-byte key from `.rdata`, a 64-bit block counter of zero and an 8-byte nonce stored right after the key. I decrypted the three slots with that key and nonce. Slot 0 came out as `hxxp://vexdico[.]shop:8539/videos`. Slots 1 and 2 came out as noise.
 
@@ -71,7 +84,13 @@ The key was right, so the counter had to be wrong. The cipher function copies th
 
 ### One tag across four builds
 
-The payload creates a named object, `\BaseNamedObjects\` plus a 32-character hex string that a pointer at `.data+0x10` refers to, through a direct syscall. It looks up hash `0x0a8ff4e4` in a table of (hash, service number) pairs and calls the stub with five arguments, `(&handle, 0x1F0003, &object_attributes, 0, 1)`, with `OBJ_OPENIF` in the attributes. My first draft called this an event: `NtCreateMutant` takes four arguments, and five arguments with 0x1F0003 fit `NtCreateEvent`. They fit `NtCreateSemaphore` just as well (initial count 0, maximum 1, `SEMAPHORE_ALL_ACCESS`), and the shape alone can't separate the two. The hash can. Malware Cake Factory published Remus's hash function, a reflected CRC32 with initial value `0x96577E78` and a final inversion. Under it `0x0a8ff4e4` is `NtCreateSemaphore`, and the hash of the next call, which passes the handle, 0 and a timeout, is `NtWaitForSingleObject`. So it is a named semaphore. The same pointer is read in two other places, each time between the code that decodes the string `&exp=` and the code that decodes `tag=`, so it is also the build tag sent at registration. Malware Cake Factory shows the registration body as `tag=<…>&exp=<…>&hwid=<…>`, and Flashpoint notes that Lumma's LID corresponds to Remus's tag.
+The payload creates a named object, `\BaseNamedObjects\` plus a 32-character hex string that a pointer at `.data+0x10` refers to, through a direct syscall. It looks up hash `0x0a8ff4e4` in a table of (hash, service number) pairs and calls the stub with five arguments, `(&handle, 0x1F0003, &object_attributes, 0, 1)`, with `OBJ_OPENIF` in the attributes.
+
+My first draft called this an event: `NtCreateMutant` takes four arguments, and five arguments with 0x1F0003 fit `NtCreateEvent`. They fit `NtCreateSemaphore` just as well (initial count 0, maximum 1, `SEMAPHORE_ALL_ACCESS`), and the shape alone can't separate the two.
+
+The hash can. Malware Cake Factory published Remus's hash function, a reflected CRC32 with initial value `0x96577E78` and a final inversion. Under it `0x0a8ff4e4` is `NtCreateSemaphore`, and the hash of the next call, which passes the handle, 0 and a timeout, is `NtWaitForSingleObject`. So it is a named semaphore, which the payload uses as a run-once lock.
+
+The same pointer is read in two other places, each time between the code that decodes the string `&exp=` and the code that decodes `tag=`. So it is also the build tag sent at registration. Malware Cake Factory shows the registration body as `tag=<…>&exp=<…>&hwid=<…>`, and Flashpoint notes that Lumma's LID corresponds to Remus's tag.
 
 All four payloads carry the same tag, `03473d3f2d528ba787191417a6e1e5f0`, in plain text. The configs, from my extractor:
 
@@ -84,7 +103,11 @@ All four payloads carry the same tag, `03473d3f2d528ba787191417a6e1e5f0`, in pla
 
 All slots use plain HTTP. Every build has `vexdico[.]shop:8539` with a different path, and the path changes per build while the host stays. All four use the same contract, selector and RPC endpoint, and each has its own ChaCha20 key and nonce.
 
-Some of this is already public. The payload in `4c16f5eb` (SHA-256 `4713985869f2…`) is the subject of Malware Cake Factory's [October 7 post](https://malwarecakefactory.github.io/malware-analysis/remus-protected-startup-tasking-analysis/), which reached it through a different 2CLoader build (`5edcaa75…`, one of the eight report hashes I couldn't get). That post gives its three C2s, the tag, the slot selector and the encrypted tasking protocol in far more depth than I do here. The same identical payload inside two loader builds suggests the operator wraps one Remus build several times. Triage's sandbox config for another Remus sample on MalwareBazaar (`78cc6707…`, first seen August 25) also lists `vexdico[.]shop:8539` and `kupzovo[.]shop:7567`. New here are the other three payloads' configs and the observation that one tag spans all four.
+Some of this is already public. The payload in `4c16f5eb` (SHA-256 `4713985869f2…`) is the subject of Malware Cake Factory's [October 7 post](https://malwarecakefactory.github.io/malware-analysis/remus-protected-startup-tasking-analysis/), which reached it through a different 2CLoader build (`5edcaa75…`, one of the eight report hashes I couldn't get). That post gives its three C2s, the tag, the slot selector and the encrypted tasking protocol in far more depth than I do here.
+
+The same identical payload inside two loader builds suggests the operator wraps one Remus build several times. Triage's sandbox config for another Remus sample on MalwareBazaar (`78cc6707…`, first seen August 25) also lists `vexdico[.]shop:8539` and `kupzovo[.]shop:7567`.
+
+New here are the other three payloads' configs and the observation that one tag spans all four.
 
 ## Vidar: a 16-byte XOR key next to the dead drops
 
@@ -106,7 +129,9 @@ The way in was a diff. Two pairs of loaders carry payloads with the same code: `
 0xedd06  mov      byte ptr [r9 + r10], cl
 ```
 
-`div r8` leaves `i % 16` in `rdx`, the next two loads fetch `key[i % 16]` and `src[i]`, and the XOR goes to `dst[i]`. The running subtraction into `[rsp+0xb0]` feeds nothing. So each field is `src[i] ^ key[i % 16]`, and the 16-byte key is stored right in front of the fields it protects. My first look at the diff went wrong here: I read the first 34-byte run as one encrypted field and tried to decrypt it whole. It is 15 bytes I never identified, then the key, then the version string `3.0`.
+`div r8` leaves `i % 16` in `rdx`, the next two loads fetch `key[i % 16]` and `src[i]`, and the XOR goes to `dst[i]`. The running subtraction into `[rsp+0xb0]` feeds nothing. So each field is `src[i] ^ key[i % 16]`, and the 16-byte key is stored right in front of the fields it protects.
+
+My first look at the diff went wrong here: I read the first 34-byte run as one encrypted field and tried to decrypt it whole. It is 15 bytes I never identified, then the key, then the version string `3.0`.
 
 The layout, with offsets from the key and values from `1337ed6f`. Malware Cake Factory had already published the same offsets for version 3.8 in its [Vidar 3.9 versus 3.8](https://malwarecakefactory.github.io/malware-analysis/vidar-3-9-vs-3-8-analysis/) comparison; I found that after doing the work, and these builds agree with it:
 
@@ -120,9 +145,13 @@ The layout, with offsets from the key and values from `1337ed6f`. Malware Cake F
 | record + 0x142 | 0x100, length byte at +0x242 | record n: User-Agent | the Edge string listed below |
 | +0x1047 | 1 | record count | 3 |
 
-The code reads the count byte and caps it at 7 (`cmp al, bl` with `ebx = 7`), the same limit of seven records [Rapid7 described](https://www.rapid7.com/blog/post/tr-malicious-websites-wordpress-compromise-advances-global-stealer-operation/) in March for an older build. Only that much carries over: Rapid7's records are three fixed 0x100-byte strings, while these have length bytes and a 0x40-byte anchor. Rapid7 also explains what the anchor is for. Vidar fetches the page, finds the anchor string and takes the C2 that follows it up to a `|`. I didn't trace that parser in these builds, so the anchor's role here rests on Rapid7's and Malware Cake Factory's descriptions, not on my reading.
+The code reads the count byte and caps it at 7 (`cmp al, bl` with `ebx = 7`), the same limit of seven records [Rapid7 described](https://www.rapid7.com/blog/post/tr-malicious-websites-wordpress-compromise-advances-global-stealer-operation/) in March for an older build. Only that much carries over: Rapid7's records are three fixed 0x100-byte strings, while these have length bytes and a 0x40-byte anchor.
 
-I wrote an extractor for this layout before searching properly, which was a waste. [Gen Digital's `vidar_config_extractor.py`](https://github.com/gendigitalinc/ioc/tree/master/Vidar) (also shipped in CAPE's parsers as `community/Vidar.py`) parses the same blob, written for versions 1.5 to 1.8. I ran it on all eight payloads, and its output matches mine field for field, so that is the tool to use. Rapid7's [`vidar_v2_extract.py`](https://github.com/rapid7/Rapid7-Labs/tree/main/Malware%20Config%20Extractors) returns empty results for all eight. It looks for printable strings under a 91-character Vigenère-like alphabet and a two-digit version, which is an older Vidar format, not a bug.
+Rapid7 also explains what the anchor is for. Vidar fetches the page, finds the anchor string and takes the C2 that follows it up to a `|`. I didn't trace that parser in these builds, so the anchor's role here rests on Rapid7's and Malware Cake Factory's descriptions, not on my reading.
+
+I wrote an extractor for this layout before searching properly, which was a waste. [Gen Digital's `vidar_config_extractor.py`](https://github.com/gendigitalinc/ioc/tree/master/Vidar) (also shipped in CAPE's parsers as `community/Vidar.py`) parses the same blob, written for versions 1.5 to 1.8. I ran it on all eight payloads, and its output matches mine field for field, so that is the tool to use.
+
+Rapid7's [`vidar_v2_extract.py`](https://github.com/rapid7/Rapid7-Labs/tree/main/Malware%20Config%20Extractors) returns empty results for all eight. It looks for printable strings under a 91-character Vigenère-like alphabet and a two-digit version, which is an older Vidar format, not a bug.
 
 ### What the eight configs say
 
@@ -137,7 +166,7 @@ I wrote an extractor for this layout before searching properly, which was a wast
 | `3286ff47` | 2026-09-04 | 3.3 | `i11y` | `telegram[.]me/goof0r`, Steam `…45030031`, Fandom `63771805` | YaBrowser/26.8 |
 | `0a2ef2c3` | 2026-09-04 | 3.3 | `i11y` | `telegram[.]me/goof0r`, Steam `…45030031`, Fandom `63771805` | YaBrowser/26.8 |
 
-The build time is the loader's `bt` field from the previous post. Each payload has its own build ID and its own XOR key, even where two builds share every dead drop.
+The build time is the loader's `bt` field from the previous post. Each payload has its own build ID and its own XOR key, even where two builds share every dead drop. Builds share accounts: the five builds that use Epic Games point to three profiles between them, and the two that use Fandom share one.
 
 The version column climbs with the build date, and the 3.0 and 3.1 payloads have identical code. So "3.1" is a string the builder writes, whatever it counts. Zscaler's string-obfuscation post lists `2d43d592` as "Vidar v3.1" and calls its version numbers internal ThreatLabz labels. The payload inside that loader happens to say 3.1 in its own config. I can't tell whether that is a coincidence.
 
@@ -158,7 +187,15 @@ hxxps://dev.epicgames[.]com/community/api/user_profiles/profile.json?hash_id=EMq
 hxxps://community.fandom[.]com/wikia.php?controller=UserProfile&method=getUserData&format=json&userId=63771805
 ```
 
-The first is the Epic Games developer community, the second a Fandom wiki account. There is one conflict with older reporting. Rapid7 found that the build it analyzed resolved a URL only if it contained `.me/` or `amcommunity[.]com`, and used any other URL as the C2 directly. Neither new URL contains those strings, so either the check changed in these builds or these records do nothing useful. Malware Cake Factory describes 3.8 and 3.9 as searching retrieved content for the marker with a direct-use fallback, which fits the first reading. I haven't confirmed it in code. The Vidar reports I read name Telegram and Steam (and, for older builds, Mastodon); none mentions Epic Games or Fandom, and searches for Vidar with either service found nothing. Three of the five builds that use the Epic profiles sit in loaders dressed as Epic's own Easy Anti-Cheat service. I'd call that a coincidence of disguise, not a design.
+The first is the Epic Games developer community, the second a Fandom wiki account.
+
+There is one conflict with older reporting. Rapid7 found that the build it analyzed resolved a URL only if it contained `.me/` or `amcommunity[.]com`, and used any other URL as the C2 directly. Neither new URL contains those strings, so either the check changed in these builds or these records do nothing useful.
+
+Malware Cake Factory describes 3.8 and 3.9 as searching retrieved content for the marker with a direct-use fallback, which fits the first reading. I haven't confirmed it in code.
+
+The Vidar reports I read name Telegram and Steam (and, for older builds, Mastodon); none mentions Epic Games or Fandom, and searches for Vidar with either service found nothing.
+
+Three of the five builds that use the Epic profiles sit in loaders dressed as Epic's own Easy Anti-Cheat service. I'd call that a coincidence of disguise, not a design.
 
 ## The "njrat" payload is Vidar 2.8
 
@@ -166,7 +203,11 @@ The first is the Epic Games developer community, the second a Fandom wiki accoun
 
 ## What I couldn't determine
 
-I didn't open any of the 13 dead-drop pages or query the Ethereum contract. That would mean touching the operator's infrastructure, and the answers would describe today, not the build dates. So the Vidar C2 servers themselves are unknown here, and the Remus Ethereum fallback is known only as a contract and a selector. The 15 bytes in front of each Vidar key differ per build, and I don't know what they are. I didn't reimplement Vidar's string VM, so the Vidar strings, including the anchor parser, are taken from Rapid7's and Zscaler's descriptions and not read by me. For Remus, my emulator recovered one RPC endpoint per build; other reports list as many as seven providers, and I can't rule out more in strings my emulator didn't reach. What `exp` carries and what the shared tag represents on the operator's side are open as well.
+I didn't open any of the 13 dead-drop pages or query the Ethereum contract. That would mean touching the operator's infrastructure, and the answers would describe today, not the build dates. So the Vidar C2 servers themselves are unknown here, and the Remus Ethereum fallback is known only as a contract and a selector.
+
+The 15 bytes in front of each Vidar key differ per build, and I don't know what they are. I didn't reimplement Vidar's string VM, so the Vidar strings, including the anchor parser, are taken from Rapid7's and Zscaler's descriptions and not read by me.
+
+For Remus, my emulator recovered one RPC endpoint per build; other reports list as many as seven providers, and I can't rule out more in strings my emulator didn't reach. What `exp` carries and what the shared tag represents on the operator's side are open as well.
 
 ## Indicators
 
@@ -233,4 +274,11 @@ Every build in this set has its own key and its own build ID, and the Vidar buil
 
 ## Credits
 
-[Zscaler ThreatLabz](https://www.zscaler.com/blogs/security-research/2cloader-new-malware-loader-delivering-vidar-and-remus) (Muhammed Irfan V A) published the 2CLoader samples these payloads came from, and Ismael Garcia Perez's [Vidar string-obfuscation analysis](https://www.zscaler.com/blogs/security-research/vidar-adds-virtual-machine-and-custom-stream-ciphers-string-obfuscation) supplied the cipher constants. Gen Digital wrote the [Vidar config extractor](https://github.com/gendigitalinc/ioc/tree/master/Vidar) that reads these builds and, with Vojtěch Krejsa and Jan Rubín, the [first analysis of Remus](https://www.gendigital.com/blog/insights/research/remus-64bit-variant-of-lumma-stealer). Milan Spinka at [Rapid7](https://www.rapid7.com/blog/post/tr-malicious-websites-wordpress-compromise-advances-global-stealer-operation/) documented Vidar's earlier config records and anchor parsing, and Malware Cake Factory's [Vidar 3.9 versus 3.8](https://malwarecakefactory.github.io/malware-analysis/vidar-3-9-vs-3-8-analysis/) (October 21) published the XOR config layout these builds use. Malware Cake Factory's [Remus C2 protocol analysis](https://malwarecakefactory.github.io/malware-analysis/remus-c2-protocol-analysis/) and its [October analysis](https://malwarecakefactory.github.io/malware-analysis/remus-protected-startup-tasking-analysis/) of the `4713985869f2…` payload covered the contract, the selector, the slot selector, the tag and the CRC32 hash function before I did. Unit 42's [Remus note](https://github.com/PaloAltoNetworks/Unit42-timely-threat-intel/blob/main/2026-07-30-Remus-Info-Stealer-Uses-Blockchain-Anchored-C2.txt), [SpyCloud](https://spycloud.com/blog/remus-a-new-infostealer/), [CIS](https://www.cisecurity.org/insights/blog/sltt-c2-traffic-tied-to-remus-malware-distribution-operation) and [Flashpoint](https://flashpoint.io/blog/remus-stealer-a-new-not-so-new-infostealer/) reported the contract, the RPC endpoint, the forged `Host` header and the tag's Lumma lineage. Samples are from [MalwareBazaar](https://bazaar.abuse.ch/).
+- [Zscaler ThreatLabz](https://www.zscaler.com/blogs/security-research/2cloader-new-malware-loader-delivering-vidar-and-remus) (Muhammed Irfan V A) published the 2CLoader samples these payloads came from.
+- Ismael Garcia Perez's [Vidar string-obfuscation analysis](https://www.zscaler.com/blogs/security-research/vidar-adds-virtual-machine-and-custom-stream-ciphers-string-obfuscation) supplied the cipher constants.
+- Gen Digital wrote the [Vidar config extractor](https://github.com/gendigitalinc/ioc/tree/master/Vidar) that reads these builds and, with Vojtěch Krejsa and Jan Rubín, the [first analysis of Remus](https://www.gendigital.com/blog/insights/research/remus-64bit-variant-of-lumma-stealer).
+- Milan Spinka at [Rapid7](https://www.rapid7.com/blog/post/tr-malicious-websites-wordpress-compromise-advances-global-stealer-operation/) documented Vidar's earlier config records and anchor parsing.
+- Malware Cake Factory's [Vidar 3.9 versus 3.8](https://malwarecakefactory.github.io/malware-analysis/vidar-3-9-vs-3-8-analysis/) (October 21) published the XOR config layout these builds use.
+- Malware Cake Factory's [Remus C2 protocol analysis](https://malwarecakefactory.github.io/malware-analysis/remus-c2-protocol-analysis/) and its [October analysis](https://malwarecakefactory.github.io/malware-analysis/remus-protected-startup-tasking-analysis/) of the `4713985869f2…` payload covered the contract, the selector, the slot selector, the tag and the CRC32 hash function before I did.
+- Unit 42's [Remus note](https://github.com/PaloAltoNetworks/Unit42-timely-threat-intel/blob/main/2026-07-30-Remus-Info-Stealer-Uses-Blockchain-Anchored-C2.txt), [SpyCloud](https://spycloud.com/blog/remus-a-new-infostealer/), [CIS](https://www.cisecurity.org/insights/blog/sltt-c2-traffic-tied-to-remus-malware-distribution-operation) and [Flashpoint](https://flashpoint.io/blog/remus-stealer-a-new-not-so-new-infostealer/) reported the contract, the RPC endpoint, the forged `Host` header and the tag's Lumma lineage.
+- Samples are from [MalwareBazaar](https://bazaar.abuse.ch/).

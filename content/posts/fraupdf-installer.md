@@ -2,7 +2,7 @@
 title: "FrauPDF's installer checks its own file name before it asks for a payload"
 date: 2026-11-14T11:48:39+00:00
 slug: "fraupdf-installer"
-description: "A signed .NET installer for a PDF reader I found no write-up for: the decoy it installs, the four-step check it runs first (security products, file name, a server's digit-parity answer), the URL scheme that disguises tokens as version fields, the uid that hides an antivirus bitmask, and the three-stage in-memory DLL chain it maps from the server's reply."
+description: "FrauPDF's signed .NET installer checks security products, its own file name and a server's digit-parity answer before it maps three DLLs in memory."
 tags: ["fraupdf", "dotnet", "loader", "malvertising-lure", "string-decryption", "config-extraction", "windows"]
 sample:
   family: "FrauPDF installer (unnamed)"
@@ -11,16 +11,24 @@ sample:
 toc: true
 ---
 
-`AppPDF_593771.exe` installs a real PDF and EPUB reader called FrauPDF, but before it does, it decides whether the machine deserves something else. It quits on sight of ESET, Kaspersky, Sandboxie or Frida, keeps going only if its own file name still ends in something like `_593771`, and then asks `thepdfsoftsetup[.]com` for a number. If the digits of the answer add up to a non-zero even sum, it downloads a blob and maps a 32-bit DLL from it in memory, which produces a second DLL, which produces a third. When the server says no, or the file has been renamed, it installs the reader and nothing else.
+`AppPDF_593771.exe` installs a real PDF and EPUB reader called FrauPDF, but before it does, it decides whether the machine deserves something else. It quits on sight of ESET, Kaspersky, Sandboxie or Frida, keeps going only if its own file name still ends in something like `_593771`, and then asks `thepdfsoftsetup[.]com` for a number.
 
-The file was the newest entry under MalwareBazaar's `Dotnet` tag when I looked on November 14, 2026. It was submitted on November 12, and the submitter tagged it `TamperedChef` among other things. None of the vendor entries on the page names a family: Intezer says "unknown", ReversingLabs counts 1 of 36 scanners, Triage scores it 3 out of 10. One of the page's automatically generated YARA hits is called `WIN_Malware_XWorm_ForgeAuto_6b06c990_Extrait`; I found nothing XWorm-like in the installer. I found no public write-up for FrauPDF, "The PDF Soft" or the domain. I read it with ILSpy, NETReactorSlayer, dnfile and IL listings.
+If the digits of the answer add up to a non-zero even sum, it downloads a blob and maps a 32-bit DLL from it in memory. That DLL produces a second DLL, which produces a third. When the server says no, or the file has been renamed, it installs the reader and nothing else.
+
+The file was the newest entry under MalwareBazaar's `Dotnet` tag when I looked on November 14, 2026. It was submitted on November 12, and the submitter tagged it `TamperedChef` among other things. None of the vendor entries on the page names a family:
+
+- Intezer says "unknown";
+- ReversingLabs counts 1 of 36 scanners;
+- Triage scores it 3 out of 10.
+
+One of the page's automatically generated YARA hits is called `WIN_Malware_XWorm_ForgeAuto_6b06c990_Extrait`; I found nothing XWorm-like in the installer. I found no public write-up for FrauPDF, "The PDF Soft" or the domain.
 
 ## What I found
 
-- The installer's strings sit behind two layers. One is a per-byte XOR, `b ^ ((i * 37 + 107) & 0xFF)`. The other is a resource encrypted in the Babel Obfuscator style: an XOR'd header, DES-CBC, then a Deflate variant whose stored-block lengths are XOR'd with `0xF112`. Neither NETReactorSlayer nor de4dot decodes it. All 241 strings decode statically.
+- The installer's strings sit behind two layers: a per-byte XOR, `b ^ ((i * 37 + 107) & 0xFF)`, and a resource encrypted in the Babel Obfuscator style that neither NETReactorSlayer nor de4dot decodes. All 241 strings decode statically.
 - The four C2 URLs use one host and fake version parameters (`ver`, `chan`, `lang`, `arch`, `build`). Their values are a hard-coded 16-hex token split into 4+3+3+3+3 characters, one token per step: gate, beacon, download, finish.
-- The `uid` sent with the download is 8 hex characters. The last 4 encode a bitmask of the security products running on the host, XOR'd with the first 4 and with two slices of the download token, so the server can undo it.
-- The installer keeps only the first quarter of the downloaded blob. It XORs that quarter with a fixed keystream from a shift register seeded with `0x95000000`, reads a size at offset 64 and a DLL at offset 68. A 32-byte constant gets XOR'd in and back out on the way and has no effect.
+- The `uid` sent with the download is 8 hex characters. The last 4 encode a bitmask of the security products running on the host, XOR'd so the server can undo it.
+- The installer XORs only the first quarter of the downloaded blob with a fixed keystream from a shift register seeded with `0x95000000`, and finds a DLL at offset 68.
 - The DLL's `cx1` export turns the full blob into a second DLL, whose `ac` export makes a third, whose `dc` export runs. The parameter names survive in metadata: `filepath`, `serverResponse`, `sslNumber`, `secretCount`, `bannerHwnd`, `strWrapperClass`.
 
 ## Triage: a signed setup with a broken signature
@@ -34,7 +42,9 @@ The file was the newest entry under MalwareBazaar's `Dotnet` tag when I looked o
 | PE timestamp | 2026-11-03 10:28:08 UTC |
 | Authenticode | GlobalSign EV code signing, leaf serial `5231870f44396fa132602d23`, valid 2026-06-15 to 2027-06-16 |
 
-The certificate was issued to a Wyoming-registered LLC. It doesn't cover this file. LIEF reports `BAD_DIGEST|BAD_SIGNATURE`, and the file's Authenticode hash is `5835f713…` while the signed digest is `9c8376e3…`. Either the signature was copied from another file or the file was changed after signing; I can't tell which from this one sample. Windows will show it as signed but invalid. I'm not naming the company: the certificate says who bought it, not who wrote the code.
+The certificate was issued to a Wyoming-registered LLC. It doesn't cover this file. LIEF reports `BAD_DIGEST|BAD_SIGNATURE`, and the file's Authenticode hash is `5835f713…` while the signed digest is `9c8376e3…`.
+
+Either the signature was copied from another file or the file was changed after signing; I can't tell which from this one sample. Windows will show it as signed but invalid. I'm not naming the company: the certificate says who bought it, not who wrote the code.
 
 Two manifest resources stand out. `FrauPDF.Inst.x0pack` (1,904,981 bytes) is a plain ZIP holding one `fraupdf.exe`. `FrauPDF.Inst.r0bin` (27,648 bytes) is a plain .NET PE. Among the rest (an ILRepack list and a few empty `.resources`), one called `oNNFP`, 2,659 bytes long, looks like noise.
 
@@ -48,7 +58,7 @@ So the installer does install a working reader into `%LOCALAPPDATA%\Programs\Fra
 
 ## Getting the strings back
 
-NETReactorSlayer flattened most of the control flow back into readable C#, resolved 4,989 constant expressions and then reported "Couldn't find any encrypted string." I took that at face value for a while. Then `Main`'s crash handler wrote its log to `Path.Combine(GetTempPath(), Class104.smethod_0(21906))`, and `Class104` was not in the decompiled project at all. ILSpy's project export had silently skipped about 50 types, including the one that matters.
+I read the installer with ILSpy, NETReactorSlayer, dnfile and IL listings. NETReactorSlayer flattened most of the control flow back into readable C#, resolved 4,989 constant expressions and then reported "Couldn't find any encrypted string." I took that at face value for a while. Then `Main`'s crash handler wrote its log to `Path.Combine(GetTempPath(), Class104.smethod_0(21906))`, and `Class104` was not in the decompiled project at all. ILSpy's project export had silently skipped about 50 types, including the one that matters.
 
 There are two string schemes. The simple one covers 30 strings (UI text and resource names), the User-Agent and an export name. Each is a fixed-size blob in `<PrivateImplementationDetails>`, decoded like this:
 
@@ -58,7 +68,11 @@ out[i] = blob[i] ^ ((i * 37 + 107) & 0xFF)
 
 That gives `FrauPDF.Inst.x0pack`, `Mozilla/5.0`, `cx1`, and status lines like "Srarting setup..." (the typo is theirs).
 
-The other scheme is a string table, and the code that reads it is built at run time. `Class104`'s static constructor opens the resource whose name decodes to `oNNFP` (`"áÀÀÈÞ"` XOR `0x8E`), passes it through `Class106.smethod_0`, and builds a method with Reflection.Emit. That method reads `BinaryReader.ReadString()` records into a `Hashtable`, keyed by `(stream position + 22) ^ 22437`, and parks the table in `AppDomain.SetData`. The emitted code sets the XOR key to 0 when `Assembly.GetEntryAssembly().FullName` contains `AssemblyServer`, `SimpleAssemblyExplorer`, `babelvm` or `smoketest`, so those tools get the wrong strings. Every `Class104.smethod_0(id)` is a lookup in that table.
+The other scheme is a string table, and the code that reads it is built at run time. `Class104`'s static constructor opens the resource whose name decodes to `oNNFP` (`"áÀÀÈÞ"` XOR `0x8E`), passes it through `Class106.smethod_0`, and builds a method with Reflection.Emit.
+
+That method reads `BinaryReader.ReadString()` records into a `Hashtable`, keyed by `(stream position + 22) ^ 22437`, and parks the table in `AppDomain.SetData`. Every `Class104.smethod_0(id)` is a lookup in that table.
+
+The emitted code sets the XOR key to 0 when `Assembly.GetEntryAssembly().FullName` contains `AssemblyServer`, `SimpleAssemblyExplorer`, `babelvm` or `smoketest`, so those tools get the wrong strings.
 
 `Class106` unwraps the resource:
 
@@ -69,11 +83,29 @@ The other scheme is a string table, and the code that reads it is built at run t
 | 39 | 4 | header XOR key | `15 ef 63 31` |
 | 43 | rest | body | 2,616 bytes |
 
-Inside the header, in order: a 7-bit-length string (`lic529D59AB`), an "encrypted" flag, a "compressed" flag, a 32-bit signature length (0), a "key present" flag, the DES key (`610099aa55b1e0aa`) and the DES IV (`02b4b9b9b8d26bac`). The body is DES-CBC with PKCS#7 padding, then compressed.
+Inside the header, in order:
 
-The decompressor (`Class112`) is a hand-written inflater, and it looks a lot like one I've seen in de4dot. de4dot's `BabelInflater` reads a 4-bit block header (1 bit "final", 3 bits type) and XORs stored-block lengths with a magic value. This one does the same with different numbers: type 3 is stored, 2 is fixed Huffman, 4 is dynamic Huffman, and the magic is `0xF112`. There's no `NLEN`. The tables are standard Deflate. This resource happens to be a single fixed-Huffman block, so the stored path and its magic come from reading the code, not from the data. de4dot's Babel resource parsers also expect a different header (one flag fewer before the signature, and the IV before the key). I think this is a Babel-family string protection in a build de4dot doesn't know, layered under .NET Reactor. That's an inference from the shared design; I haven't seen the protector itself.
+- a 7-bit-length string (`lic529D59AB`);
+- an "encrypted" flag;
+- a "compressed" flag;
+- a 32-bit signature length (0);
+- a "key present" flag;
+- the DES key (`610099aa55b1e0aa`);
+- the DES IV (`02b4b9b9b8d26bac`).
 
-My first inflater died on the second back-reference: a length of 5 at a distance of 370, with 113 bytes of output. I suspected another format tweak and went back into `Class107`'s tables. The tables were standard. My distance extra-bits array wasn't: I'd written `i // 2` where Deflate needs `i // 2 - 1`, which gave every distance code from 2 upward one extra bit too many. With that fixed, the body inflates to 4,095 bytes and 241 strings, and every `Class104.smethod_0(n)` in the code resolves. A few of them:
+The body is DES-CBC with PKCS#7 padding, then compressed.
+
+The decompressor (`Class112`) is a hand-written inflater, and it looks a lot like one I've seen in de4dot. de4dot's `BabelInflater` reads a 4-bit block header (1 bit "final", 3 bits type) and XORs stored-block lengths with a magic value.
+
+This one does the same with different numbers: type 3 is stored, 2 is fixed Huffman, 4 is dynamic Huffman, and the magic is `0xF112`. There's no `NLEN`. The tables are standard Deflate.
+
+This resource happens to be a single fixed-Huffman block. The stored path and its magic therefore come from reading the code, not from the data.
+
+de4dot's Babel resource parsers also expect a different header (one flag fewer before the signature, and the IV before the key). I think this is a Babel-family string protection in a build de4dot doesn't know, layered under .NET Reactor. That's an inference from the shared design; I haven't seen the protector itself.
+
+My first inflater died on the second back-reference: a length of 5 at a distance of 370, with 113 bytes of output. I suspected another format tweak and went back into `Class107`'s tables. The tables were standard.
+
+My distance extra-bits array wasn't: I'd written `i // 2` where Deflate needs `i // 2 - 1`, which gave every distance code from 2 upward one extra bit too many. With that fixed, the body inflates to 4,095 bytes and 241 strings, and every `Class104.smethod_0(n)` in the code resolves. A few of them:
 
 ```text
 23469  thepdfsoftsetup.com
@@ -92,13 +124,23 @@ The left column is the ID the code passes. The last two lines are the first sign
 
 ## Four checks before any download
 
-`Main` hands control to a six-step pipeline (`Class59`). ILSpy produced an empty file for that class, so the rest of this section comes from IL. Each step either continues or stops with a result. A stop with 0 makes `Main` call `ExitProcess(0)`. A stop with 1 or 2 runs the normal installer. A stop with 3 runs the download branch. The first step runs the file name check and stores the result; the other five are:
+`Main` hands control to a six-step pipeline (`Class59`). ILSpy produced an empty file for that class, so the rest of this section comes from IL.
 
-1. Security products and analysis tools. It hashes every process image name, every running service name and every module in its own process, then compares the hashes with tables of known names (more on those below). Any hit on ESET, Kaspersky, Sandboxie, Frida, `analyzer.exe`, or the Kaspersky service names stops with 0. The installer exits without showing a window or installing anything.
+Each step either continues or stops with a result. A stop with 0 makes `Main` call `ExitProcess(0)`. A stop with 1 or 2 runs the normal installer. A stop with 3 runs the download branch.
+
+The first step runs the file name check and stores the result; the other five are:
+
+1. Security products and analysis tools. It hashes every process image name, every running service name and every module in its own process, then compares the hashes with tables of known names (more on those below).
+
+   Any hit on ESET, Kaspersky, Sandboxie, Frida, `analyzer.exe`, or the Kaspersky service names stops with 0. The installer exits without showing a window or installing anything.
+
 2. Its own file name. If the stored check failed, the pipeline stops with 1 and the reader gets installed.
+
 3. The gate request. A GET to the first URL. The reply is cut at the first whitespace and kept as a token.
+
 4. Fingerprint. It builds the security-product bitmask described below and sets two flags: one for the token check, one for the file name check.
-5. Decision. If the gate request threw an error, it stops with 2. If the token's digits sum to zero or an odd number, it stops with 2. If the file name check and the token check both passed, it stops with 3.
+
+5. Decision. It stops with 2 if the gate request threw an error, or if the token's digits sum to zero or an odd number. If the file name check and the token check both passed, it stops with 3.
 
 Here is the file name check (`Class57`), rewritten from the IL:
 
@@ -190,7 +232,11 @@ if not 0x10000 < size < quarter - 68: fail
 stage1 = work[68:68 + size]
 ```
 
-`lfsr_xor` (`Class22`) is a bit-level stream cipher that ignores its input when making the keystream. The state is a 32-bit register starting at `0x95000000`. For every bit, MSB first within each byte, the feedback bit is bit 18 XOR bit 17 of the state. The state shifts right by one and takes the feedback as its new bit 31, and the data bit is XOR'd with the feedback. Every call starts from the same seed, so this is a fixed keystream, and (2) is busywork: the 32-byte constant gets XOR'd with keystream bytes 32–63 and then XOR'd back. The bytes that matter are `blob[32:]` XOR keystream bytes from offset 64.
+`lfsr_xor` (`Class22`) is a bit-level stream cipher that ignores its input when making the keystream. The state is a 32-bit register starting at `0x95000000`.
+
+For every bit, MSB first within each byte, the feedback bit is bit 18 XOR bit 17 of the state. The state shifts right by one and takes the feedback as its new bit 31, and the data bit is XOR'd with the feedback.
+
+Every call starts from the same seed, so this is a fixed keystream. That makes (2) busywork: the 32-byte constant gets XOR'd with keystream bytes 32–63 and then XOR'd back. The bytes that matter are `blob[32:]` XOR keystream bytes from offset 64.
 
 The other three quarters of the blob aren't touched here, but the whole blob goes to the next stage.
 
@@ -209,7 +255,15 @@ int dc (char16* wrapperPath, byte* serverResp, byte* sslNumber, HWND bannerWnd,
 ```
 
 1. Stage 1 (from the quarter) is mapped and `cx1` gets the full blob. Its output buffer is stage 2.
-2. Stage 2 is mapped and `ac` gets the full blob again, the installer's own path, two empty 1,024-byte buffers, a "secret count" string, the handle of a fake progress window, and `FrauPDF;PDF;\AppData\Local\Programs\FrauPDF\;/S`. Its output is stage 3. Judging by the names, the two buffers come back filled.
+2. Stage 2 is mapped and `ac` gets:
+   - the full blob again;
+   - the installer's own path;
+   - two empty 1,024-byte buffers;
+   - a "secret count" string;
+   - the handle of a fake progress window;
+   - `FrauPDF;PDF;\AppData\Local\Programs\FrauPDF\;/S`.
+
+   Its output is stage 3. Judging by the names, the two buffers come back filled.
 3. Stage 3 is mapped and `dc` gets the path, both filled buffers, a fresh "secret count", the window handle and the same descriptor string. The installer then hides the progress window.
 
 `secretCount` is not a count. `Class32` writes the decimal `GetTickCount()` backwards into the even slots of a 99-character buffer and fills the odd slots with digits from a xorshift32 generator seeded from `GetTickCount64()` (42 only if that is zero). The descriptor string looks like what a later stage would need to reinstall or relaunch the "wrapper" quietly: product name, a type, the install folder and the silent switch `/S`. That reading is a guess from the names; I don't have the stages.

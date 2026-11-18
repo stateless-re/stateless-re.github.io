@@ -2,7 +2,7 @@
 title: "PLOTSAFE's post-quantum loader always picks salt number 3"
 date: 2026-11-14T18:28:19+00:00
 slug: "plotsafe-kem-loader"
-description: "The PLOTSAFE Go loader from Talos's AI-analysis-evasion report: 23 environment checks that corrupt a key instead of exiting, a Kyber-512 decapsulation, a salt index that a Go Sum() call pins to 3, 25 AES-GCM chunks, and the 32-bit shellcode and stealer it injects into OpenWith.exe."
+description: "PLOTSAFE's Gen 2 loader runs a Kyber-512 key exchange and 23 checks that corrupt the key instead of exiting, then a Go Sum() call pins its salt to number 3."
 tags: ["plotsafe", "acrstealer", "golang", "garble", "emulation", "kyber", "process-injection", "windows"]
 sample:
   family: "PLOTSAFE loader (Gen 2)"
@@ -11,14 +11,24 @@ sample:
 toc: true
 ---
 
-PLOTSAFE's second-generation loader decrypts its payload with an AES-256 key that passes through a Kyber-512 key decapsulation, and the private key for that decapsulation is built from a 32-byte mask that 23 sandbox and debugger checks quietly corrupt. A sandbox doesn't get an early exit; it gets the wrong key, and the loader returns without a word. The step after the key exchange is meant to choose one of 16 salts from a hash of the shared secret, but a Go `hash.Sum(b)` call appends instead of replacing, so the "random" index is the low nibble of the letter `s`: salt number 3, on every run. With the checks' byte inversions suppressed, the 100,230-byte payload decrypts. It is 32-bit shellcode that the loader writes into a suspended `OpenWith.exe`, and inside it is a stealer that opens the Windows AFD driver directly.
+PLOTSAFE's second-generation loader decrypts its payload with an AES-256 key that passes through a Kyber-512 key decapsulation. The private key for that decapsulation is built from a 32-byte mask that 23 sandbox and debugger checks quietly corrupt. A sandbox doesn't get an early exit; it gets the wrong key, and the loader returns without a word.
 
-Cisco Talos covered PLOTSAFE on October 8 in [a report on malware that addresses AI-assisted analysis](https://blog.talosintelligence.com/ignore-all-instructions-and-read-this-blog-the-state-of-ai-analysis-evasion-in-malware/) (Ryan Fetterman), with a longer [family write-up](https://github.com/Cisco-Talos/Cognitive-Artifact-Intelligence-Research-Network/blob/main/docs/families/PLOTSAFE.md) in its CAIRN repository. That work is about the decoy sentences the builds carry for language-model triage tools, and it is explicit about what it left: the C2 "come[s] from sandbox execution and AV labelling only", static recovery would have needed emulating about 960 string-decryption sites, and the stealer payload was never recovered. Both PLOTSAFE DLLs Talos lists in the blog were on Hybrid Analysis but not on MalwareBazaar. I read them with pefile and capstone and emulated the lifted code with Unicorn. This post follows the Gen 2 build (`2e3e1bcd…`) from its string protection to its third stage.
+The step after the key exchange is meant to choose one of 16 salts from a hash of the shared secret. But a Go `hash.Sum(b)` call appends instead of replacing, so the "random" index is the low nibble of the letter `s`: salt number 3, on every run.
+
+With the checks' byte inversions suppressed, the 100,230-byte payload decrypts. It is 32-bit shellcode that the loader writes into a suspended `OpenWith.exe`, and inside it is a stealer that opens the Windows AFD driver directly.
+
+Cisco Talos covered PLOTSAFE on October 8 in [a report on malware that addresses AI-assisted analysis](https://blog.talosintelligence.com/ignore-all-instructions-and-read-this-blog-the-state-of-ai-analysis-evasion-in-malware/) (Ryan Fetterman), with a longer [family write-up](https://github.com/Cisco-Talos/Cognitive-Artifact-Intelligence-Research-Network/blob/main/docs/families/PLOTSAFE.md) in its CAIRN repository. That work is about the decoy sentences the builds carry for language-model triage tools. It is explicit about what it left:
+
+- the C2 "come[s] from sandbox execution and AV labelling only";
+- static recovery would have needed emulating about 960 string-decryption sites;
+- the stealer payload was never recovered.
+
+Both PLOTSAFE DLLs Talos lists in the blog were on Hybrid Analysis but not on MalwareBazaar. I read them with pefile and capstone and emulated the lifted code with Unicorn. This post follows the Gen 2 build (`2e3e1bcd…`) from its string protection to its third stage.
 
 ## What I found
 
-- The roughly 960 string sites Talos counted hide Go standard-library strings. I found 960 references to the permutation tables in 166 functions and decoded 952 of them: `bufio`, `zlib`, `debug/pe`, `encoding/hex` and time-zone text, nothing that belongs to the loader. The loader's own strings use a per-string Caesar shift.
-- Twenty-three checks (Defender emulator exports, sandbox host and user names, uptime, CPU count, RAM, debugger flags, display settings, video decoders) each invert one byte of a 32-byte mask. The mask feeds the Kyber-512 private key, so a hit is meant to change the AES key.
+- The roughly 960 string sites Talos counted hide Go standard-library strings (`bufio`, `zlib`, `encoding/hex`, time-zone text), nothing that belongs to the loader. The loader's own strings use a per-string Caesar shift.
+- Twenty-three sandbox and debugger checks each invert one byte of a 32-byte mask. The mask feeds the Kyber-512 private key, so a hit is meant to change the AES key.
 - The AES key is `SHA-256(shared_secret || "PQC-PE-AES256GCM")`. The salt index is the first byte of `hmac.Sum([]byte("salt-select"))`, masked with `0x0F`, which is always 3.
 - The payload is 25 AES-GCM chunks with Ascii85-encoded nonces and tags. It decrypts to x86 shellcode (SHA-256 `2a30450c…`) that XORs and aPLib-unpacks a 319,488-byte PE32 (`7503f54b…`). Neither hash is on MalwareBazaar or Hybrid Analysis.
 - The loader starts `C:\Windows\SysWOW64\OpenWith.exe` suspended, writes the shellcode with `Nt*` functions it resolves by SHA-1 of the export name, and patches the entry point with `mov eax, <addr>; jmp eax`.
@@ -37,7 +47,16 @@ movzx esi, byte ptr [rax + rdx] ; buffer byte
 movzx esi, byte ptr [rsp + rsi + 0x1c]  ; substitute through the table
 ```
 
-Rather than reimplement each variant, I emulated every function that loads a table, starting at the function entry and dumping any buffer passed to the next call. The tables are referenced from 960 places in 166 functions. The emulator reached 952 of them (the 8 it missed are in standard-library functions low in `.text`), and the buffers it captured hold 1,117 distinct printable runs: time-zone names, Unicode script names, `strconv`, `bufio` and `zlib` errors, `debug/pe` messages, and `encoding/hex: odd length hex string` and `illegal ascii85 data at input byte` in the helpers next to the loader's main. I searched them for URLs, domains, executable names and the strings the loader uses later; there are none.
+Rather than reimplement each variant, I emulated every function that loads a table, starting at the function entry and dumping any buffer passed to the next call. The tables are referenced from 960 places in 166 functions. The emulator reached 952 of them; the 8 it missed are in standard-library functions low in `.text`.
+
+The buffers it captured hold 1,117 distinct printable runs:
+
+- time-zone names and Unicode script names;
+- `strconv`, `bufio` and `zlib` errors;
+- `debug/pe` messages;
+- `encoding/hex: odd length hex string` and `illegal ascii85 data at input byte`, in the helpers next to the loader's main.
+
+I searched them for URLs, domains, executable names and the strings the loader uses later; there are none.
 
 So emulating the 960 sites would not have given Talos the C2. The loader's own strings are much simpler, a Caesar shift on letters that changes per string:
 
@@ -57,7 +76,9 @@ Reading the main function statically was slow: the loader builds everything at r
 
 First, names for the runtime. I downloaded the Go 1.25.0 toolchain, built a small Windows program that imports the same standard packages, and matched functions by instruction sequence with immediates and branch targets masked. That named 1,278 of the DLL's 5,029 functions, including `mallocgc`, `growslice`, `slicebytetostring`, `syscall.(*LazyProc).Call` and `runtime.cgocall`.
 
-Second, a Go runtime that works without being initialized. The emulator replaces the allocators with a bump allocator, gives `r14` a fake `g` with an `m` and a `p` behind it (the `sync.Pool` code reads `m.p.id`, and `deferprocStack` checks `m.curg`), maps a TLS block so the ABI wrappers' `mov r14, gs:[...]` reload finds that `g`, and answers every Windows call itself. Third, real PE files: the loader reads `ntdll.dll`, `kernel32.dll` and `user32.dll` from `System32` with Go's `debug/pe`. I used the PE builds that ship in Ubuntu's `libwine` package. Wine's DLLs keep a COFF symbol table, and `debug/pe` read it 18 bytes at a time, thousands of reads, until the instruction limit; zeroing the symbol-table pointer in my copies fixed that.
+Second, a Go runtime that works without being initialized. The emulator replaces the allocators with a bump allocator and gives `r14` a fake `g` with an `m` and a `p` behind it (the `sync.Pool` code reads `m.p.id`, and `deferprocStack` checks `m.curg`). It maps a TLS block so the ABI wrappers' `mov r14, gs:[...]` reload finds that `g`, and it answers every Windows call itself.
+
+Third, real PE files: the loader reads `ntdll.dll`, `kernel32.dll` and `user32.dll` from `System32` with Go's `debug/pe`. I used the PE builds that ship in Ubuntu's `libwine` package. Wine's DLLs keep a COFF symbol table, and `debug/pe` read it 18 bytes at a time, thousands of reads, until the instruction limit. Zeroing the symbol-table pointer in my copies fixed that.
 
 With that, the call graph is short. `0x180276080` is the loader's main:
 
@@ -96,7 +117,16 @@ There are 23 of these `not` sites, one for each mask byte from `0x00` to `0x17` 
 
 Why corrupt instead of exit? Because the corruption is invisible. Patching a conditional jump in a sandbox is routine; there is no jump here. Every check runs, every path continues, and the only symptom is a decryption that fails at the end.
 
-My first emulated run showed exactly that. Seven checks fired because of my own API models: my `Find` stub reported the three Defender-emulator exports as present (bytes 5 to 7), my fake `KUSER_SHARED_DATA` page said zero processors and zero memory (bytes `0x0c` and `0x0d`), my display-mode buffer had zeros at offset `0x78` (byte `0x16`), and a two-condition helper at `0x18024bce0` returned false (byte `0x0a`). The key that came out failed every GCM tag. Suppressing those seven inversions, and only those, produced a key that authenticated all 25 chunks. So on the build's intended targets no check fires. I tested the seven together, not one at a time, and I didn't reverse how each mask byte enters the private key.
+My first emulated run showed exactly that. Seven checks fired because of my own API models:
+
+- my `Find` stub reported the three Defender-emulator exports as present (bytes 5 to 7);
+- my fake `KUSER_SHARED_DATA` page said zero processors and zero memory (bytes `0x0c` and `0x0d`);
+- my display-mode buffer had zeros at offset `0x78` (byte `0x16`);
+- a two-condition helper at `0x18024bce0` returned false (byte `0x0a`).
+
+The key that came out failed every GCM tag. Suppressing those seven inversions, and only those, produced a key that authenticated all 25 chunks. So on the build's intended targets no check fires.
+
+I tested the seven together, not one at a time, and I didn't reverse how each mask byte enters the private key.
 
 ## The key goes through Kyber-512, then loses its randomness
 
@@ -179,7 +209,11 @@ Those calls go through objects my emulator couldn't name, so the sequence below 
 3. `NtAllocateVirtualMemory` for `0x18786` bytes, `PAGE_READWRITE`; `NtWriteVirtualMemory` with the shellcode; `NtProtectVirtualMemory` to `PAGE_EXECUTE_READ`.
 4. `NtProtectVirtualMemory` on 7 bytes at the entry point to `PAGE_EXECUTE_READWRITE`, a write of `B8 <addr> FF E0` (`mov eax, addr; jmp eax`), and protection back to `PAGE_EXECUTE_READ`.
 
-My emulation stops at the next call. The loader has resolved `ResumeThread` and `NtFlushInstructionCache`, and Talos's sandbox runs of the Gen 1 build show later activity (a PowerShell child and C2 traffic), so I think the thread is resumed next. Before all this, `0x18027b8e0` hides its console window and starts `SysWOW64\dllhost.exe` suspended. It also resolves `ReadProcessMemory`, `WriteProcessMemory` and `TerminateProcess`, but my emulated run took a branch that used none of them, so I can't say what that child is for. The `STARTUPINFOEXW`-sized block and the resolved `InitializeProcThreadAttributeList`/`UpdateProcThreadAttribute` suggest parent spoofing, but the creation flags I saw were `CREATE_SUSPENDED` alone, without `EXTENDED_STARTUPINFO_PRESENT`.
+My emulation stops at the next call. The loader has resolved `ResumeThread` and `NtFlushInstructionCache`, and Talos's sandbox runs of the Gen 1 build show later activity (a PowerShell child and C2 traffic). So I think the thread is resumed next.
+
+Before all this, `0x18027b8e0` hides its console window and starts `SysWOW64\dllhost.exe` suspended. It also resolves `ReadProcessMemory`, `WriteProcessMemory` and `TerminateProcess`, but my emulated run took a branch that used none of them, so I can't say what that child is for.
+
+The `STARTUPINFOEXW`-sized block and the resolved `InitializeProcThreadAttributeList`/`UpdateProcThreadAttribute` suggest parent spoofing. But the creation flags I saw were `CREATE_SUSPENDED` alone, without `EXTENDED_STARTUPINFO_PRESENT`.
 
 ## The decoy text
 
@@ -188,7 +222,9 @@ Talos's report is mostly about the sentences this build carries for language-mod
 ## Wrong turns
 
 - GoStringUngarbler found nothing; its patterns predate Go 1.24.
-- I expected the ~960 table sites to hide the C2. They hide the standard library. My first pass also found only 720 of them: capstone's linear sweep over `.text` stops at the first bytes it can't decode, and I hadn't noticed it never reached the loader's end of the section. Walking `.pdata` function by function found all 960. A table-range bound I had typed `0x800` short hid the last few.
+- I expected the ~960 table sites to hide the C2. They hide the standard library.
+- My first pass found only 720 of the sites. Capstone's linear sweep over `.text` stops at the first bytes it can't decode, and I hadn't noticed it never reached the loader's end of the section.
+- Walking `.pdata` function by function found all 960. A table-range bound I had typed `0x800` short hid the last few.
 - Wine's COFF symbol tables turned `debug/pe` into thousands of 18-byte reads.
 - My first key was wrong because my own API answers tripped seven checks.
 - I read the nonces as hex, then the payload as Donut. Neither held.
@@ -199,7 +235,9 @@ Talos's report is mostly about the sentences this build carries for language-mod
 - What `0x180275a00` does with the mask and the 11 fragments; I observed its output only.
 - What the `dllhost.exe` child is for, and whether parent spoofing happens on a real host.
 - The export behind SHA-1 `f3f8c92b…`.
-- The Gen 1 build (`a42632c6…`). It carries a hex blob of exactly the same length (200,460 characters), a `768:` Ascii85 string and circl's Kyber-512 package in clear, so I think it wraps the same 100,230-byte payload the same way. I didn't decrypt it.
+- The Gen 1 build (`a42632c6…`), which I didn't decrypt.
+
+The Gen 1 build carries a hex blob of exactly the same length (200,460 characters), a `768:` Ascii85 string and circl's Kyber-512 package in clear. So I think it wraps the same 100,230-byte payload the same way.
 
 ## Indicators
 

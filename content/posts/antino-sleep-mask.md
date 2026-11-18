@@ -2,7 +2,7 @@
 title: "Antino's October sleep mask answered every access violation in the process"
 date: 2026-11-14T10:58:15+00:00
 slug: "antino-sleep-mask"
-description: "Five Antino builds from MalwareBazaar: the Microsoft 365 configs that the vendor reports redacted (secrets still withheld), the sleep-mask cipher Talos left unnamed and how its handler changed during October, the Gen1 session-ID key, and the command-line mode that the Rhai engine exists for."
+description: "Antino's October 2025 sleep mask is a keyless byte transform whose handler answers every access violation in the process; later October builds fixed it."
 tags: ["antino", "uat-11587", "rust", "sleep-mask", "microsoft-graph", "config-extraction", "windows"]
 sample:
   family: "Antino"
@@ -11,17 +11,21 @@ sample:
 toc: true
 ---
 
-The October 14, 2025 build of Antino hides shellcode between sleeps with a keyless byte transform, `rol3((b + 0x35) ^ 0x5A)`, and undoes it from a vectored exception handler that answers every access violation in the process, wherever it happened. Three days later the handler checked the faulting address, and by October 21 the Sleep hook only fired on the shellcode's own thread. Antino is the Rust backdoor that Cisco Talos [tied to UAT-11587](https://blog.talosintelligence.com/china-nexus-uat-11587-targets-government-and-policy-organizations-across-asia-with-antino-backdoor/) on September 30, and that Unit 42 [found delivered through the Falcon browser framework](https://unit42.paloaltonetworks.com/falcon-c2-browser-compromise/) on November 11. Talos describes the mask as the later builds implement it (hooked `Sleep` and `VirtualAlloc`, a handler that "confirms that the fault occurred within the tracked region") and says the hook "encrypts its contents in place" without naming the cipher. Both reports describe the `.cfg` config section; neither publishes the Microsoft 365 identifiers in it.
+The October 14, 2025 build of Antino hides shellcode between sleeps with a keyless byte transform, `rol3((b + 0x35) ^ 0x5A)`. It undoes it from a vectored exception handler that answers every access violation in the process, wherever it happened. Three days later the handler checked the faulting address, and by October 21 the Sleep hook only fired on the shellcode's own thread.
+
+Antino is the Rust backdoor that Cisco Talos [tied to UAT-11587](https://blog.talosintelligence.com/china-nexus-uat-11587-targets-government-and-policy-organizations-across-asia-with-antino-backdoor/) on September 30, and that Unit 42 [found delivered through the Falcon browser framework](https://unit42.paloaltonetworks.com/falcon-c2-browser-compromise/) on November 11.
+
+Talos describes the mask as the later builds implement it: hooked `Sleep` and `VirtualAlloc`, and a handler that "confirms that the fault occurred within the tracked region". It says the hook "encrypts its contents in place" without naming the cipher. Both reports describe the `.cfg` config section; neither publishes the Microsoft 365 identifiers in it.
 
 Five of the twelve Antino hashes in the Talos report are on MalwareBazaar. I read all five with Ghidra, pefile and Python. This post covers what the two reports left out, plus a [config extractor](https://github.com/stateless-re/tools/tree/main/families/antino) that also decodes Gen1 session IDs.
 
 ## What I found
 
-- The five configs use two Entra ID tenants and three app registrations. The three October builds share one tenant and one app; the two January builds share a second tenant and use one app each. Their `remark` values are `gmail`, `gmail-0326-3`, `mod_sy` and null. The tenant, client and user IDs are below; the client secrets are not.
-- The sleep mask is `rol3((b + 0x35) ^ 0x5A)` per byte, with no key, in the four builds whose mask code I read; the fifth carries the same constants. In the October 14 build both mask implementations (one per code path) suspend every other thread when the shellcode sleeps and decode on any access violation. The October 17 memory image already bounds-checks the fault address; the October 21 and January DLLs also tie the mask to one thread and suspend nothing. With the mask on, the `load` commands in the three builds I read leave the shellcode `PAGE_EXECUTE_READWRITE`.
-- In the October standalone builds the session ID is Base64 of `pid:host:user:windows x86_64:<field>` XORed with the 5-byte key `KxWNF`. Anyone holding such a session ID can recover the host and user from it.
-- The Rhai script engine in the October 14 build has one direct caller: a command-line mode, `<exe> <file> true|false <key>`, that XOR-decodes a shellcode file, runs it through a native function the engine knows as `antino`, and deletes the file. The `load_shellcode` command's restart path writes that file to `%TEMP%\tmp_XXXXXX.dat` and relaunches the current executable with those arguments.
-- MalwareBazaar labels two of the five files `RustyStealer`. One of the two carries the file name `..._akira_luca-stealer_rusty-stealer.exe`.
+- The five configs use two Entra ID tenants and three app registrations. The tenant, client and user IDs are below; the client secrets are not.
+- The sleep mask, `rol3((b + 0x35) ^ 0x5A)`, has no key. Its handler answered any access violation until October 17, and the mask stopped suspending threads by October 21.
+- With the mask on, masked shellcode runs from `PAGE_EXECUTE_READWRITE` memory in the three builds whose `load` code I read.
+- In the October standalone builds the session ID is `pid:host:user:windows x86_64:<field>`, XORed with `KxWNF` and Base64-encoded. Anyone holding one can recover the host and user.
+- The Rhai engine in the October 14 build has one direct caller: a command-line mode, `<exe> <file> true|false <key>`. The `load_shellcode` restart path relaunches into it with `%TEMP%\tmp_XXXXXX.dat`.
 
 ## Five builds, two generations, three dates
 
@@ -35,13 +39,23 @@ Talos splits Antino into Gen1 (October 2025, no `AntinoApp` manifest, host-deriv
 | `09ef7c73` | Gen2 `slc.dll` | x64 DLL | 2026-01-11 07:54 | `slc_template.pdb` (x86_64 target) |
 | `0c392643` | Gen2 fake installer | x86 EXE | 2026-01-11 07:55 | `antino_client_template.pdb` (i686 target) |
 
-The `_template` suffix fits what the files look like: each of the four PE files has a 64 KB section named `.cfg` that is almost all zero bytes, and I think a builder writes the config into it after compilation (the memory image's section table is UPX's, so it has no `.cfg` entry). Four builds were compiled on a GitHub Actions runner (`C:\Users\runneradmin\.cargo\registry\...`). The memory image `ca14ad03` was not. Its paths point to a `J:\` drive and a user profile on a developer's machine, and its Cargo registry is `rsproxy[.]cn`, the Rust mirror Talos mentions. I'm leaving the user name out.
+The `_template` suffix fits what the files look like. Each of the four PE files has a 64 KB section named `.cfg` that is almost all zero bytes, and I think a builder writes the config into it after compilation. (The memory image's section table is UPX's, so it has no `.cfg` entry.)
 
-The table also shows the first wrong assumption I made. I expected the line between the two generations to fall between October and January. For the sleep mask it falls inside October, and it isn't one line. `ca14ad03`, three days after `40e7e77a`, already has the bounds-checked handler but still suspends threads. `1fadc90b`, which Talos calls Gen1, has the January mask complete and doesn't contain, in clear text, the session key that `40e7e77a` and `ca14ad03` carry. Talos's split is by manifest and session format, which is a fair way to label builds; the code moved faster than the labels. In what follows, "the October standalone builds" means `40e7e77a` and `ca14ad03`.
+Four builds were compiled on a GitHub Actions runner (`C:\Users\runneradmin\.cargo\registry\...`). The memory image `ca14ad03` was not. Its paths point to a `J:\` drive and a user profile on a developer's machine, and its Cargo registry is `rsproxy[.]cn`, the Rust mirror Talos mentions. I'm leaving the user name out.
+
+MalwareBazaar labels two of the five files `RustyStealer`. One of the two carries the file name `..._akira_luca-stealer_rusty-stealer.exe`.
+
+The table also shows the first wrong assumption I made. I expected the line between the two generations to fall between October and January. For the sleep mask it falls inside October, and it isn't one line.
+
+`ca14ad03`, three days after `40e7e77a`, already has the bounds-checked handler but still suspends threads. `1fadc90b`, which Talos calls Gen1, has the January mask complete and doesn't contain, in clear text, the session key that `40e7e77a` and `ca14ad03` carry.
+
+Talos's split is by manifest and session format, which is a fair way to label builds; the code moved faster than the labels. In what follows, "the October standalone builds" means `40e7e77a` and `ca14ad03`.
 
 ## The config is plain JSON behind a two-byte XOR
 
-Talos gives the format: a four-byte little-endian length, then JSON XORed with the alternating key `0xAB 0xCD`. Unit 42 gives the same 4-byte length and "2-byte key 0xABCD", and prints the field names, with the credentials and the remark redacted and `run` and `launch_mode` in clear. The first two encrypted bytes are always `D0 EF`, which is `{"` under that key, and that is what the extractor searches for when there is no `.cfg` section, as in the memory image. The decoded configs, with the secret removed:
+Talos gives the format: a four-byte little-endian length, then JSON XORed with the alternating key `0xAB 0xCD`. Unit 42 gives the same 4-byte length and "2-byte key 0xABCD", and prints the field names, with the credentials and the remark redacted and `run` and `launch_mode` in clear.
+
+The first two encrypted bytes are always `D0 EF`, which is `{"` under that key, and that is what the extractor searches for when there is no `.cfg` section, as in the memory image. The decoded configs, with the secret removed:
 
 ```json
 {"tenant_id":"df622d8d-49d3-4dea-9222-a3475dd63ead","client_id":"c381c514-9839-4d24-946c-056607961c23","client_secret":"<redacted, 40 chars>","user_id":"6a9a3baa-7873-43f7-b9b8-a63cf1588302","remark":"gmail","run":true,"launch_mode":"dll"}
@@ -59,7 +73,11 @@ That one is `1fadc90b`. All five:
 
 The config of `40e7e77a` has no `run` or `launch_mode` keys at all; every build compiled after October 14 has them. All three October builds carry the same 40-character secret.
 
-I'm publishing the tenant, client and user IDs and withholding the secrets. The IDs are identifiers, and they appear in traffic: the tenant ID is in the token URL path (`login.microsoftonline[.]com/<tenant>/oauth2/v2.0/token`), and the client ID is in the token request body. A client secret is a working credential for a mailbox and a OneDrive that hold victims' files, and printing it would hand that access to anyone who reads this. I don't know whether these tenants were created by the operator or taken from someone else.
+The three October builds share one tenant and one app; the two January builds share a second tenant and use one app each. Their `remark` values are `gmail`, `gmail-0326-3`, `mod_sy` and null.
+
+I'm publishing the tenant, client and user IDs and withholding the secrets. The IDs are identifiers, and they appear in traffic: the tenant ID is in the token URL path (`login.microsoftonline[.]com/<tenant>/oauth2/v2.0/token`), and the client ID is in the token request body.
+
+A client secret is a working credential for a mailbox and a OneDrive that hold victims' files, and printing it would hand that access to anyone who reads this. I don't know whether these tenants were created by the operator or taken from someone else.
 
 The [extractor](https://github.com/stateless-re/tools/tree/main/families/antino) prints the config with the secret redacted unless you pass `--show-secret`:
 
@@ -99,7 +117,9 @@ real_Sleep(ms);
 for each suspended thread: ResumeThread(h);          // (6)
 ```
 
-Line (4) is the whole cipher: add `0x35`, XOR `0x5A`, rotate left by 3. The vector constants are as plain as the scalar code: sixteen bytes of `0x35` and sixteen of `0x5A` sit at `0x140453c50` and `0x140453c60`, so in a string dump they read as `5555555555555555` and `ZZZZZZZZZZZZZZZZ`. There is no key, so a given shellcode always masks to the same bytes. A common x64 stager prologue, `fc 48 83 e4 f0`, becomes `5b 39 17 1a fb`.
+Line (4) is the whole cipher: add `0x35`, XOR `0x5A`, rotate left by 3. The vector constants are as plain as the scalar code: sixteen bytes of `0x35` and sixteen of `0x5A` sit at `0x140453c50` and `0x140453c60`, so in a string dump they read as `5555555555555555` and `ZZZZZZZZZZZZZZZZ`.
+
+There is no key, so a given shellcode always masks to the same bytes. A common x64 stager prologue, `fc 48 83 e4 f0`, becomes `5b 39 17 1a fb`.
 
 Lines (5) and (6) freeze every other thread in the process for as long as the shellcode sleeps; in the `load_shellcode` copy that includes Antino's own Tokio workers. Then the hook returns, and the region is still masked and still `PAGE_READWRITE`.
 
@@ -116,7 +136,11 @@ LONG veh_unmask(EXCEPTION_POINTERS *e) {
 }
 ```
 
-See if you can spot the problem. The handler checks the exception code and nothing else: not the faulting address, not the thread. The `load_shellcode` copy (`0x14021f030`) has the same check and nothing more. Any access violation anywhere in the process, a null dereference in Antino's own Rust code or one in the shellcode, makes it run (7): restore the protection, "decode" a region that may not be masked, and retry the faulting instruction (8). If the region was not masked, the decode corrupts it. If the fault had nothing to do with the region, the retry faults again, and the handler decodes the same region again on every pass.
+See if you can spot the problem. The handler checks the exception code and nothing else: not the faulting address, not the thread. The `load_shellcode` copy (`0x14021f030`) has the same check and nothing more.
+
+Any access violation anywhere in the process makes it run (7), a null dereference in Antino's own Rust code as much as one in the shellcode. It restores the protection, "decodes" a region that may not be masked, and retries the faulting instruction (8).
+
+If the region was not masked, the decode corrupts it. If the fault had nothing to do with the region, the retry faults again, and the handler decodes the same region again on every pass.
 
 The memory image `ca14ad03` (October 17) already fixed this. Its handler (the function at `0x7ff61ae80530` in the dump) follows the `cmp dword ptr [rax], 0xc0000005` with a load of `ExceptionInformation[1]` (`mov r8, [r8 + 0x28]`) and two compares against the region base and end. Its Sleep hook still walks the thread list: the snapshot loop (`Thread32First`/`Thread32Next`) is at `0x7ff61ae7fc9b`.
 
@@ -131,15 +155,23 @@ addr = e->ExceptionRecord->ExceptionInformation[1];        // the inaccessible a
 if (addr < region || addr >= region + size) return 0;
 ```
 
-The Sleep hook (`0x18003f610`) starts with `if (GetCurrentThreadId() != shellcode_tid) goto passthrough;`, so only the shellcode's own sleeps mask the region, and it no longer calls `SuspendThread` at all. `1fadc90b` (October 21) has the same handler (`0x180033640`) and the same thread gate (`0x180033840`). Neither DLL imports `SuspendThread`, `Thread32First` or `CreateToolhelp32Snapshot`. Only `40e7e77a` imports those three, and only it and the memory image contain their names, so their presence marks the two earliest builds; the extractor reports it as `thread_suspension_imports`.
+The Sleep hook (`0x18003f610`) starts with `if (GetCurrentThreadId() != shellcode_tid) goto passthrough;`, so only the shellcode's own sleeps mask the region, and it no longer calls `SuspendThread` at all. `1fadc90b` (October 21) has the same handler (`0x180033640`) and the same thread gate (`0x180033840`).
 
-One more detail from the `load` command, and I had it backwards in my first draft. When the mask is on, the command runs the decode transform over the incoming buffer before it executes it, so the operator sends shellcode that is already masked. Then it sets the protection. In `09ef7c73` the path that installs the hooks and the path that finds them already installed both jump to the same `PAGE_EXECUTE_READWRITE` (`0x40`); `PAGE_EXECUTE` (`0x10`) is used only when the mask is off. `1fadc90b` and the `load_shellcode` path of `40e7e77a` also use `0x40`, and the `load_shellcode` handler in `40e7e77a` restores `0x40` after decoding. In the three builds whose `load` code I read, masked shellcode runs from RWX memory; I didn't check `0c392643`. The one exception is the command-line mode in `40e7e77a`, which uses `PAGE_EXECUTE`.
+Neither DLL imports `SuspendThread`, `Thread32First` or `CreateToolhelp32Snapshot`. Only `40e7e77a` imports those three, and only it and the memory image contain their names, so their presence marks the two earliest builds; the extractor reports it as `thread_suspension_imports`.
+
+One more detail from the `load` command, and I had it backwards in my first draft. When the mask is on, the command runs the decode transform over the incoming buffer before it executes it, so the operator sends shellcode that is already masked. Then it sets the protection.
+
+In `09ef7c73` the path that installs the hooks and the path that finds them already installed both jump to the same `PAGE_EXECUTE_READWRITE` (`0x40`). `PAGE_EXECUTE` (`0x10`) is used only when the mask is off. `1fadc90b` and the `load_shellcode` path of `40e7e77a` also use `0x40`, and the `load_shellcode` handler in `40e7e77a` restores `0x40` after decoding.
+
+In the three builds whose `load` code I read, masked shellcode runs from RWX memory; I didn't check `0c392643`. The one exception is the command-line mode in `40e7e77a`, which uses `PAGE_EXECUTE`.
 
 The October DLL `1fadc90b` hides its command field names (more on that below), so I decoded the ones its `load` command reads. There are three: `shellcode`, `use_sleep_mask` and `use_restart_mode`. The third leads to the strangest part of the October standalone build.
 
 ## What the Rhai engine is for
 
-Unit 42's command table describes `load` as "Download and execute a Rhai script", and notes that Antino "supports execution of Rhai scripts", an embedded scripting language for Rust, though it never saw one in use. `40e7e77a` and `0c392643` both link `rhai-1.23.4`. In `40e7e77a` I traced the engine back to its callers. The engine is built in one function (`0x140002a50`), the only direct caller of the Rhai setup routine at `0x1400cc9e0`, and that function has one direct caller, `main` (`0x14004cd90`, call at `0x14004d293`):
+Unit 42's command table describes `load` as "Download and execute a Rhai script", and notes that Antino "supports execution of Rhai scripts", an embedded scripting language for Rust, though it never saw one in use. `40e7e77a` and `0c392643` both link `rhai-1.23.4`.
+
+In `40e7e77a` I traced the engine back to its callers. The engine is built in one function (`0x140002a50`), the only direct caller of the Rhai setup routine at `0x1400cc9e0`, and that function has one direct caller, `main` (`0x14004cd90`, call at `0x14004d293`):
 
 ```c
 args = std::env::args();
@@ -155,11 +187,26 @@ if (rhai_entry() == 0)                               // (12)
 
 With fewer than three arguments (9) the binary is the ordinary backdoor. With three, it's a shellcode runner. I first read the argument order as file, key, flag; the offsets into the argument vector say otherwise. `args[2]` is the one compared with `0x65757274` and a length of 4, which is `"true"`, and `args[3]` is the key (10, 11).
 
-`rhai_entry` (12) builds an engine, registers one native function, and calls it by name. The name is hidden: it's rebuilt at runtime from 6 bytes at `0x1404500a0` XORed with `0xf66baf`, `0xae` and `0x40`, behind a pointer computed as `0x140442da0 + f(0xd8d74178)`. The pointer arithmetic follows the pattern of the `obfstr` crate, though the crate leaves no path string behind, so that's an inference. The decoded name is `antino`. The native function behind it checks that the shellcode global is set (otherwise it returns `"error: no shellcode data"` or `"error: no config"`), then spawns a thread. If the flag was `"true"`, the thread first installs the mask hooks. It then copies the buffer into a fresh `PAGE_READWRITE` allocation, runs the unmask transform over it (again only with the flag), switches it to `PAGE_EXECUTE`, and calls it.
+`rhai_entry` (12) builds an engine, registers one native function, and calls it by name. The name is hidden: it's rebuilt at runtime from 6 bytes at `0x1404500a0` XORed with `0xf66baf`, `0xae` and `0x40`, behind a pointer computed as `0x140442da0 + f(0xd8d74178)`. The pointer arithmetic follows the pattern of the `obfstr` crate, though the crate leaves no path string behind, so that's an inference. The decoded name is `antino`.
 
-So in this build the script engine is a trampoline. The shellcode call goes through an interpreter, which breaks the direct call chain from `main` to the thread that runs the payload. The `load_shellcode` handler (`0x140239740`) makes no direct call into the engine code, and I found no handler that passes operator text to it. I checked direct calls only, not every indirect one. Unit 42's `load` row may describe a build I don't have; in `1fadc90b` the `load` fields are the shellcode ones above, and what `0c392643` does with Rhai I didn't check.
+The native function behind it checks that the shellcode global is set (otherwise it returns `"error: no shellcode data"` or `"error: no config"`), then spawns a thread. The thread:
 
-The other half is the restart path in `load_shellcode` (`0x14021f280`). It generates a key and a file name, each 6 characters from `A-Za-z0-9`, with a linear congruential generator (`x * 0x41c64e6d + 0x3039`, the classic C `rand` constants) seeded from the system clock in nanoseconds. It XORs the shellcode with the key, writes it to the temp directory as `tmp_XXXXXX.dat`, and starts the current executable (`GetModuleFileNameW(NULL)`) through `CreateProcessW` with three arguments: the file path, `"true"` or `"false"`, and the key. The child takes the other side of branch (9), decodes the file, deletes it and runs the shellcode in a process with a clean history. For the DLL builds, "the current executable" would be the sideloading host, `GatherOsState.exe`; I haven't confirmed that the DLLs handle those arguments.
+- installs the mask hooks first, if the flag was `"true"`;
+- copies the buffer into a fresh `PAGE_READWRITE` allocation;
+- runs the unmask transform over it, again only with the flag;
+- switches it to `PAGE_EXECUTE`, and calls it.
+
+So in this build the script engine is a trampoline. The shellcode call goes through an interpreter, which breaks the direct call chain from `main` to the thread that runs the payload.
+
+The `load_shellcode` handler (`0x140239740`) makes no direct call into the engine code, and I found no handler that passes operator text to it. I checked direct calls only, not every indirect one. Unit 42's `load` row may describe a build I don't have; in `1fadc90b` the `load` fields are the shellcode ones above, and what `0c392643` does with Rhai I didn't check.
+
+The other half is the restart path in `load_shellcode` (`0x14021f280`). It works in three steps:
+
+- It generates a key and a file name, each 6 characters from `A-Za-z0-9`, with a linear congruential generator (`x * 0x41c64e6d + 0x3039`, the classic C `rand` constants) seeded from the system clock in nanoseconds.
+- It XORs the shellcode with the key and writes it to the temp directory as `tmp_XXXXXX.dat`.
+- It starts the current executable (`GetModuleFileNameW(NULL)`) through `CreateProcessW` with three arguments: the file path, `"true"` or `"false"`, and the key.
+
+The child takes the other side of branch (9), decodes the file, deletes it and runs the shellcode in a process with a clean history. For the DLL builds, "the current executable" would be the sideloading host, `GatherOsState.exe`; I haven't confirmed that the DLLs handle those arguments.
 
 ## Gen1 session IDs decode with "KxWNF"
 
@@ -172,7 +219,9 @@ for (i = 0; i < len(s); i++)
 return base64_standard_padded(s);
 ```
 
-The five pieces of the format string at `0x1404541b0` are `""` followed by four `":"`, so (13) has five fields. The fifth comes from the caller, as an optional string that becomes empty when unset. I think it's the config `remark`, which is null in both builds that have this code, but I didn't follow the caller far enough to prove it. The key in (14) is the 5 bytes `4b 78 57 4e 46` at `0x140454200`. The Base64 engine right after it uses the standard alphabet with padding. The two functions are called back to back from three call sites (`0x14001e1d1`/`0x14001e372` and two more pairs).
+The five pieces of the format string at `0x1404541b0` are `""` followed by four `":"`, so (13) has five fields. The fifth comes from the caller, as an optional string that becomes empty when unset. I think it's the config `remark`, which is null in both builds that have this code, but I didn't follow the caller far enough to prove it.
+
+The key in (14) is the 5 bytes `4b 78 57 4e 46` at `0x140454200`. The Base64 engine right after it uses the standard alphabet with padding. The two functions are called back to back from three call sites (`0x14001e1d1`/`0x14001e372` and two more pairs).
 
 Before I found this function I took the `+0x35 ^0x5A` loop for the session XOR, because Talos had said XOR and it was the first byte loop in the client code. It's the sleep mask. The session XOR has a key that repeats every 5 bytes, which a fixed per-byte transform doesn't.
 
@@ -184,11 +233,17 @@ $ python families/antino/extract.py --session f0pjfHwcK3oLHgo1BwIDcRk5LyoyCyN0MS
   "platform": "windows x86_64", "fifth_field": ""
 ```
 
-That ID is one I made up with the same function, not one from a victim. I decompiled this code in `40e7e77a` only; `ca14ad03` contains the same key and alphabet. I didn't trace the session ID into the heartbeat file name or the mail subject; Talos says Gen1 uses it there. `KxWNF` is in `40e7e77a` and `ca14ad03` and in none of the other three builds in clear text. `09ef7c73` builds a version-4 UUID (the `& 0xf00 | 0x4000` and `& 0x3f.. | 0x80..` bit masks at `0x18000cd70`). `1fadc90b` builds version-4 UUIDs too, but the ones I found are inside its decoy `SL*` exports (`SLGetLicensingStatusInformation` and two more); I couldn't connect any of them to the session ID.
+That ID is one I made up with the same function, not one from a victim. I decompiled this code in `40e7e77a` only; `ca14ad03` contains the same key and alphabet. I didn't trace the session ID into the heartbeat file name or the mail subject; Talos says Gen1 uses it there.
+
+`KxWNF` is in `40e7e77a` and `ca14ad03` and in none of the other three builds in clear text. `09ef7c73` builds a version-4 UUID (the `& 0xf00 | 0x4000` and `& 0x3f.. | 0x80..` bit masks at `0x18000cd70`). `1fadc90b` builds version-4 UUIDs too, but the ones I found are inside its decoy `SL*` exports (`SLGetLicensingStatusInformation` and two more); I couldn't connect any of them to the session ID.
 
 ## Hidden strings
 
-The three builds I decompiled hide some of their strings behind small helper functions that compute an obfuscated pointer (the `& 0xffff) + param_1` shape). My pattern match finds at least 14 in `40e7e77a` and about 30 each in `1fadc90b` and `09ef7c73`, and it misses some variants, so read those as lower bounds. I had first taken the `antino` name for the only hidden string in `40e7e77a`. It isn't: a cluster of helpers sits at `0x14021aa40`–`0x14021abd0`, next to the command code, and none of the five builds has `use_sleep_mask` in clear text. I decoded the three `load` field names in `1fadc90b` by hand, each with its own helper and its own XOR constants (for example, `shellcode` is 9 bytes at `0x18023727d + f(0xc1fa1e28)` XORed with `0x1be634a284277d23` and `0x7b`). A general decoder would need to emulate each helper; I didn't write one, so `1fadc90b`'s session ID scheme is still open.
+The three builds I decompiled hide some of their strings behind small helper functions that compute an obfuscated pointer (the `& 0xffff) + param_1` shape). My pattern match finds at least 14 in `40e7e77a` and about 30 each in `1fadc90b` and `09ef7c73`, and it misses some variants, so read those as lower bounds.
+
+I had first taken the `antino` name for the only hidden string in `40e7e77a`. It isn't: a cluster of helpers sits at `0x14021aa40`–`0x14021abd0`, next to the command code, and none of the five builds has `use_sleep_mask` in clear text.
+
+I decoded the three `load` field names in `1fadc90b` by hand, each with its own helper and its own XOR constants. For example, `shellcode` is 9 bytes at `0x18023727d + f(0xc1fa1e28)` XORed with `0x1be634a284277d23` and `0x7b`. A general decoder would need to emulate each helper; I didn't write one, so `1fadc90b`'s session ID scheme is still open.
 
 ## What I couldn't determine
 
@@ -241,7 +296,9 @@ Talos's report has the delivery infrastructure (Cloudflare Pages and R2 hosts, `
 
 ## Ending
 
-Antino's sleep mask was fixed in two steps within a week of October: first the handler learned to check the address, then the Sleep hook stopped freezing the process. The cipher never changed in the builds I read: no key, one add, one XOR, one rotate. A masked shellcode is as recognizable as an unmasked one, it runs from RWX memory in every `load` path I read, and in the October standalone build the relaunch with `true`/`false` and a six-character key is on the command line for anyone logging process creation.
+Antino's sleep mask was fixed in two steps within a week of October: first the handler learned to check the address, then the Sleep hook stopped freezing the process. The cipher never changed in the builds I read: no key, one add, one XOR, one rotate.
+
+A masked shellcode is as recognizable as an unmasked one, and it runs from RWX memory in every `load` path I read. In the October standalone build, the relaunch with `true`/`false` and a six-character key is on the command line for anyone logging process creation.
 
 ## Credits and further reading
 

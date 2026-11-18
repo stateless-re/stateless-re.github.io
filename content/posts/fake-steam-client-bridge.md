@@ -2,7 +2,7 @@
 title: "A fake steam.exe used to put the real one back. Its September build lets the phishing page read the Steam folder instead"
 date: 2026-11-15T11:28:36+00:00
 slug: "fake-steam-client-bridge"
-description: "Twelve files from one Steam phishing kit: a .NET launcher that logs every step to %TEMP%, a loader that decodes a fake steam.exe with XOR and a byte interleave, two .NET clients in 32 languages, a restorer that puts the real steam.exe back after the login, and the September builds that drop the restorer and give the phishing page a JavaScript bridge to HTTP and to files in the Steam folder."
+description: "A Steam phishing kit's fake steam.exe put the real one back after the login; its September builds give the phishing page a bridge to files in the Steam folder."
 tags: ["steam", "phishing", "dotnet", "webview2", "loader", "salat-stealer"]
 sample:
   family: "Fake Steam client (.NET build)"
@@ -11,14 +11,25 @@ sample:
 toc: true
 ---
 
-The fake Steam client in this kit replaces `steam.exe`, shows "Oops! Something went wrong. Please log in using the web version of Steam." and opens a phishing page in an Edge WebView2 window with certificate errors ignored. In the builds from February to July, the moment that window lands on `steamcommunity[.]com` the client drops an 8 KB .NET program that kills Steam and copies the real `steam.exe` back from `steam.back`, so the victim's next launch looks normal. The two builds from September and October no longer carry that program. Instead they inject a script that gives the remote phishing page a `window.steamm` object with `http.request`, `fs.readText` and `fs.writeText`, and the native side answers those calls for files under the folder the fake `steam.exe` runs from: the Steam install folder.
+The fake Steam client in this kit replaces `steam.exe`, shows "Oops! Something went wrong. Please log in using the web version of Steam." and opens a phishing page in an Edge WebView2 window with certificate errors ignored.
 
-The files were all uploaded to MalwareBazaar on 2026-10-13, nine fake clients and their helpers by the user Daydream and the launcher and three binders by the user Kejult. The upload comments already lay out the chain: a .NET binder that drops Salat Stealer next to a .NET launcher, the launcher that starts a loader after 60 minutes, the loader that writes the fake client over `steam.exe`. I took the two .NET clients from Bazaar's Dotnet tag, followed the chain up and down from there, and read all twelve files with ILSpy, dnfile, Ghidra and FLOSS. I found no other write-up of this kit.
+In the builds from February to July, the moment that window lands on `steamcommunity[.]com` the client drops an 8 KB .NET program. That program kills Steam and copies the real `steam.exe` back from `steam.back`, so the victim's next launch looks normal.
+
+The two builds from September and October no longer carry that program. Instead they inject a script that gives the remote phishing page a `window.steamm` object with `http.request`, `fs.readText` and `fs.writeText`. The native side answers those calls for files under the folder the fake `steam.exe` runs from: the Steam install folder.
+
+The files were all uploaded to MalwareBazaar on 2026-10-13. The user Daydream uploaded nine fake clients and their helpers, and the user Kejult uploaded the launcher and three binders. The upload comments already lay out the chain:
+
+- a .NET binder drops Salat Stealer next to a .NET launcher;
+- the launcher starts a loader after 60 minutes;
+- the loader writes the fake client over `steam.exe`.
+
+I took the two .NET clients from Bazaar's Dotnet tag and followed the chain up and down from there. I read all twelve files with ILSpy, dnfile, Ghidra and FLOSS. I found no other write-up of this kit.
 
 ## What I found
 
 - The .NET launcher, `HiddenAutoLauncher`, writes a plain-text log of every step to `%TEMP%\autolauncher_log.txt` and keeps its 60-minute timer in `%TEMP%\autolauncher_tracking.txt`. It rewrites the timer file on every start, so the loader runs only after 60 minutes of uninterrupted uptime.
-- The native loader stores the fake client as `out = deinterleave24(blob ^ key6)` and a Microsoft-signed WebView2 bootstrapper as `blob ^ key8`. A generic search for an XORed DOS header finds both, and the same search finds the restorer in all five native client builds from before September under one 16-byte key, `deadbeefcafebabe13374269aa55f00d`.
+- The native loader stores the fake client as `out = deinterleave24(blob ^ key6)` and a Microsoft-signed WebView2 bootstrapper as `blob ^ key8`.
+- A generic search for an XORed DOS header finds both, and the restorer in all five native client builds from before September under one 16-byte key, `deadbeefcafebabe13374269aa55f00d`.
 - The two .NET clients are the same program. They differ in 39 bytes, all of them in four build identifiers (the PE timestamp, the module MVID, the debug-directory timestamp and the PDB GUID).
 - Across the nine client builds the WebView2 command line grows from 2 switches to 11 and its list of disabled browser features from 1 to 16, ending with `--inprivate`. The phishing host moves from `7834156259.dojiner[.]at` to `8393546939.dojiner[.]at` to `8909451279.f1shh[.]at/client`.
 - In the September and October builds the bridge handler reads each web message as JSON without asking for its source, then dispatches 8 methods. File paths are joined to the executable's folder and rejected if the result leaves it.
@@ -110,7 +121,9 @@ void CheckTimer_Tick(...) {
 }
 ```
 
-(1) passes `null` as the user data folder, which makes WebView2 use its [default location](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/user-data-folder), a folder named after the executable next to it. For a client running as `steam.exe` that is a `steam.exe.WebView2` folder inside the Steam folder. That is an inference from the documentation, not something I watched happen. (2) polls the address twice a second, and (3) fires on any address containing `steamcommunity[.]com`, anywhere in the URL. I think the phishing page sends the browser to the real Steam Community once it has the password and the Steam Guard code, and the client takes that as its signal to clean up.
+(1) passes `null` as the user data folder, which makes WebView2 use its [default location](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/user-data-folder), a folder named after the executable next to it. For a client running as `steam.exe` that is a `steam.exe.WebView2` folder inside the Steam folder. That is an inference from the documentation, not something I watched happen.
+
+(2) polls the address twice a second, and (3) fires on any address containing `steamcommunity[.]com`, anywhere in the URL. I think the phishing page sends the browser to the real Steam Community once it has the password and the Steam Guard code, and the client takes that as its signal to clean up.
 
 I expected the two .NET builds to differ in code. Daydream's comments give them different loader keys (`ab5cd491` with 16-byte blocks, `6274d8f92e` with 24-byte blocks), and both builds have different file hashes. The decompiled C# and every resource are identical. A byte compare finds 39 differing bytes, all in four fields:
 
@@ -143,7 +156,11 @@ if (File.Exists(steam)) {
 
 The kill list matches with `EndsWith("Steam.exe")`, case-insensitive, so it also ends the fake client, which runs as `steam.exe`. `steam.back` stays on disk after the copy, as do `%TEMP%\Setup.exe` and the `runtimes` folder. Kaspersky's first sighting of this file is 2025-12-08, two months before either .NET client. The restorer is the oldest dated piece of the kit.
 
-The .NET clients store the restorer in plain sight. The native clients don't, so I wrote a search instead of reading each build's decoder. A PE from MSVC or LLD starts with one of two fixed 60-byte DOS headers. For an XOR key of length L, `stored[i] ^ stored[i+L]` equals `header[i] ^ header[i+L]`, because the key cancels out. That makes the search a `bytes.find` over the file XORed with itself shifted by L, for L from 1 to 16 and for each interleave block size. Every hit gets decoded and kept if it parses as a PE that fits in the file. On the loader it finds both blobs in a few seconds, with the keys from Ghidra. On the clients:
+The .NET clients store the restorer in plain sight. The native clients don't, so I wrote a search instead of reading each build's decoder.
+
+A PE from MSVC or LLD starts with one of two fixed 60-byte DOS headers. For an XOR key of length L, `stored[i] ^ stored[i+L]` equals `header[i] ^ header[i+L]`, because the key cancels out. That makes the search a `bytes.find` over the file XORed with itself shifted by L, for L from 1 to 16 and for each interleave block size.
+
+Every hit gets decoded and kept if it parses as a PE that fits in the file. On the loader it finds both blobs in a few seconds, with the keys from Ghidra. On the clients:
 
 | Build | Restorer | Also found |
 |---|---|---|
@@ -169,9 +186,16 @@ Here are the clients in build order, with the phishing host, the number of switc
 | `f27af032` | 2026-09-22 | `8909451279.f1shh[.]at` | 11/16 | no | yes |
 | `0edcc906` | 2026-10-05 | `8909451279.f1shh[.]at` | 11/16 | no | yes |
 
-All seven native builds are llvm-mingw: six carry the literal `llvm-mingw` string and all seven the `Mingw-w64 runtime failure` string, with the stripped `1d52f762` keeping only the latter. The four from March to July 23 keep `.buildid` and DWARF sections with a `clang version 21.1.8` string; from July 27 on the builds are stripped. The native builds pass their switches through the `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS` environment variable instead of the options object. The ones up to July use a profile folder named `SteamWV2Data`. The command line in `1d52f762` adds six switches to the original two, among them `--allow-running-insecure-content`, `--disable-web-security` and `--disable-client-side-phishing-detection`, and four Edge safety features to the disabled list (`msEnhancedSecurityMode`, `msSafeLinksValidation`, `EdgeSafetyTips`, `InternetExplorerIntegration`). September adds `--disable-domain-reliability`, `--no-pings` and `--inprivate`, and eleven more disabled features, among them `SafeBrowsing`, `PhishingProtection`, `HttpsUpgrades` and `CertificateTransparencyComponentUpdater`.
+All seven native builds are llvm-mingw. Six carry the literal `llvm-mingw` string and all seven carry the `Mingw-w64 runtime failure` string; the stripped `1d52f762` keeps only the latter. The four from March to July 23 keep `.buildid` and DWARF sections with a `clang version 21.1.8` string. From July 27 on the builds are stripped.
 
-This is where I took a wrong turn. My first URL pass over the September build printed `hxxps://8909451279[.]f1shh[.]at/clie` and I nearly put that in the table as the host's path. The string is UTF-16 on the stack, built 16 bytes at a time, and the plain string scan only saw the first chunk. FLOSS's stack-string pass rebuilt `hxxps://8909451279[.]f1shh[.]at/client`. On `1d52f762` FLOSS recovered nothing useful, so the `f1shh` host in its row comes from Daydream's comment, which says it was recovered with FLOSS. I couldn't reproduce that.
+The native builds pass their switches through the `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS` environment variable instead of the options object. The ones up to July use a profile folder named `SteamWV2Data`. The command line grows in two steps:
+
+- The command line in `1d52f762` adds six switches to the original two, among them `--allow-running-insecure-content`, `--disable-web-security` and `--disable-client-side-phishing-detection`. It also adds four Edge safety features to the disabled list (`msEnhancedSecurityMode`, `msSafeLinksValidation`, `EdgeSafetyTips`, `InternetExplorerIntegration`).
+- September adds `--disable-domain-reliability`, `--no-pings` and `--inprivate`, and eleven more disabled features, among them `SafeBrowsing`, `PhishingProtection`, `HttpsUpgrades` and `CertificateTransparencyComponentUpdater`.
+
+This is where I took a wrong turn. My first URL pass over the September build printed `hxxps://8909451279[.]f1shh[.]at/clie` and I nearly put that in the table as the host's path. The string is UTF-16 on the stack, built 16 bytes at a time, and the plain string scan only saw the first chunk. FLOSS's stack-string pass rebuilt `hxxps://8909451279[.]f1shh[.]at/client`.
+
+On `1d52f762` FLOSS recovered nothing useful, so the `f1shh` host in its row comes from Daydream's comment. The comment says it was recovered with FLOSS. I couldn't reproduce that.
 
 ## September: a bridge instead of a restorer
 
@@ -209,7 +233,11 @@ The native side is the `WebMessageReceived` handler. It calls the event argument
 | `fs.writeText` | `path`, `text` | path check, then `CreateFileW(CREATE_ALWAYS)` and write |
 | `shell.open` | `url` | `ShellExecuteW("open")`, only for `http`/`https` |
 
-The path check (`FUN_140004620`) is the one piece of restraint. At startup the client takes `GetModuleFileNameW`, strips the file name with libc++'s `std::filesystem` path code and keeps the folder in a global. The check joins the requested path to that folder, canonicalizes it, and compares the result's first characters with the folder. A relative path stays inside; `..` and absolute paths fail. I read that from Ghidra's output of the libc++ code, so treat the exact rules as my reading of it. Since the loader writes the client over `steam.exe`, the folder is the Steam install folder, and the page can read and overwrite text files there. Steam keeps `config\loginusers.vdf` and `config\config.vdf` in that folder. Whether the kit reads them I can't say: that would be in the page's JavaScript, on a server I didn't contact.
+The path check (`FUN_140004620`) is the one piece of restraint. At startup the client takes `GetModuleFileNameW`, strips the file name with libc++'s `std::filesystem` path code and keeps the folder in a global.
+
+The check joins the requested path to that folder, canonicalizes it, and compares the result's first characters with the folder. A relative path stays inside; `..` and absolute paths fail. I read that from Ghidra's output of the libc++ code, so treat the exact rules as my reading of it.
+
+Since the loader writes the client over `steam.exe`, the folder is the Steam install folder, and the page can read and overwrite text files there. Steam keeps `config\loginusers.vdf` and `config\config.vdf` in that folder. Whether the kit reads them I can't say: that would be in the page's JavaScript, on a server I didn't contact.
 
 The September builds also stop extracting a `runtimes` folder. They write `WebView2Loader.dll` from resource 300 to disk (the first folder the code builds is `%LOCALAPPDATA%\Steam`) and load it with `LoadLibraryW`.
 
@@ -222,7 +250,14 @@ The September builds also stop extracting a `runtimes` folder. They write `WebVi
 
 ## The extractor
 
-[`families/fakesteam`](https://github.com/stateless-re/tools/tree/main/families/fakesteam) in the tools repo takes any file from this chain and prints the phishing URLs it can see, the WebView2 switches, whether the restore trigger and the bridge methods are present, and every embedded PE it finds, as plain resources or with the XOR and interleave search described above, with key and block size. `-o DIR` writes the decoded PEs, named by SHA-256. It reports only URLs stored as whole strings, so for the stripped native builds use FLOSS. I tested it on all twelve kit files.
+[`families/fakesteam`](https://github.com/stateless-re/tools/tree/main/families/fakesteam) in the tools repo takes any file from this chain and prints:
+
+- the phishing URLs it can see;
+- the WebView2 switches;
+- whether the restore trigger and the bridge methods are present;
+- every embedded PE it finds, as plain resources or with the XOR and interleave search described above, with key and block size.
+
+`-o DIR` writes the decoded PEs, named by SHA-256. It reports only URLs stored as whole strings, so for the stripped native builds use FLOSS. I tested it on all twelve kit files.
 
 ## Indicators
 

@@ -2,7 +2,7 @@
 title: "SquadC is SquawkDoor, and one of its installers is SparrowDoor"
 date: 2026-11-13T23:43:30+00:00
 slug: "squadc-is-squawkdoor"
-description: "Check Point's SquadC backdoor from the fake Chrome certificate campaign is the SquawkDoor that Positive Technologies described in August. Here are its loader, both config versions, three installers' configs as text, and the SQD1 framing. Two files listed as SquadC turn out to be SparrowDoor."
+description: "Check Point's SquadC backdoor is the SquawkDoor that Positive Technologies described in August, and two files listed as SquadC are SparrowDoor."
 tags: ["squawkdoor", "squadc", "sparrowdoor", "famoussparrow", "dll-sideloading", "config-extraction", "windows"]
 sample:
   family: "SquawkDoor (SquadC)"
@@ -11,21 +11,39 @@ sample:
 toc: true
 ---
 
-The backdoor that Check Point Research calls SquadC creates a mutex named `Global\squadc_single_instance`, and Positive Technologies (PT) quoted the same mutex in August when it named the backdoor SquawkDoor. They are one family. Check Point's [report on CopperDragon's Sparrow framework](https://research.checkpoint.com/2026/not-all-that-glitters-is-gold-tracking-copperdragons-sparrow-framework-around-the-globe/) (November 10) lists ten SquadC files from the SilentDelivery watering-hole campaign, in which compromised sites show a fake Chrome certificate error and offer a "Certificate Fix" MSI. Seven of the ten are on MalwareBazaar. Five of those seven really are SquadC. The other two, an installer and its sideloaded DLL, belong to SparrowDoor: the installer's payload decrypts with PT's SparrowDoor key, and its config points at three hosts that Check Point lists for the campaign.
+The backdoor that Check Point Research calls SquadC creates a mutex named `Global\squadc_single_instance`. Positive Technologies (PT) quoted the same mutex in August when it named the backdoor SquawkDoor. They are one family.
 
-Positive Technologies' [August 21 report](https://positechglobal.com/en/research/pt-esc-threat-intelligence/famoussparrow-attacks-with-updated-sparrowdoor-backdoor-and-new-squawkdoor-backdoor/) already covers the backdoor in detail: the RC4 key, a config structure, the protocol and the command set. Check Point links a copy of that report but still calls SquadC previously undocumented. What I can add is the evidence that the two names mean one thing, the configs of all three SquawkDoor installers as text, an older and shorter config format, the byte order of the wire header, and a [config extractor](https://github.com/stateless-re/tools/tree/main/families/squawkdoor). I use PT's name, SquawkDoor, because it came first. Payloads were decrypted in Python and read with Ghidra and capstone.
+Check Point's [report on CopperDragon's Sparrow framework](https://research.checkpoint.com/2026/not-all-that-glitters-is-gold-tracking-copperdragons-sparrow-framework-around-the-globe/) (November 10) lists ten SquadC files from the SilentDelivery watering-hole campaign. In that campaign, compromised sites show a fake Chrome certificate error and offer a "Certificate Fix" MSI. Seven of the ten are on MalwareBazaar, and five of those seven really are SquadC.
+
+The other two, an installer and its sideloaded DLL, belong to SparrowDoor. The installer's payload decrypts with PT's SparrowDoor key, and its config points at three hosts that Check Point lists for the campaign.
+
+Positive Technologies' [August 21 report](https://positechglobal.com/en/research/pt-esc-threat-intelligence/famoussparrow-attacks-with-updated-sparrowdoor-backdoor-and-new-squawkdoor-backdoor/) already covers the backdoor in detail: the RC4 key, a config structure, the protocol and the command set. Check Point links a copy of that report but still calls SquadC previously undocumented.
+
+What I can add:
+
+- the evidence that the two names mean one thing;
+- the configs of all three SquawkDoor installers as text;
+- an older and shorter config format;
+- the byte order of the wire header;
+- a [config extractor](https://github.com/stateless-re/tools/tree/main/families/squawkdoor).
+
+I use PT's name, SquawkDoor, because it came first. Payloads were decrypted in Python and read with Ghidra and capstone.
 
 ## What I found
 
-- Three MSIs on MalwareBazaar install SquawkDoor. Two of them (German and Indonesian) carry byte-identical payload files. The Taiwanese one carries an older build, compiled March 17, 2026, whose config is 388 bytes instead of 396 and has no anti-analysis or browser-wait flags. Its VM checks are compiled in, but I found nothing that calls them.
+- Three MSIs on MalwareBazaar install SquawkDoor. The Taiwanese one has an older build (March 17, 2026) whose 388-byte config lacks the anti-analysis and browser-wait flags.
 - The configs give two C2 addresses, `103.141.235[.]123:443` (March build) and `135.136.135[.]54:443` (May build). Both builds use the magic tag `XlocmwW` and the check-in URL `hxxps://pplpp.microsfot[.]vip/register-ip`.
-- The installer `e5f7bbfc…` and the DLL `b60404c1…`, both listed by Check Point as SquadC, are the SparrowDoor variant from PT's report and its loader. PT's SparrowDoor key, stored in the DLL, decrypts the installer's payload, and the config names `astorialaza[.]com:26653`, `165.154.227[.]16:26653` and `aistei[.]com:443`.
+- The installer `e5f7bbfc…` and the DLL `b60404c1…`, both listed by Check Point as SquadC, are SparrowDoor. The installer's config names `astorialaza[.]com:26653`, `165.154.227[.]16:26653` and `aistei[.]com:443`.
 - The installers were built with Python's `msilib`, and their non-ASCII text is stored in GBK, the Simplified Chinese code page, even in the German one: "zurück" is stored as `7a 75 72 a8 b9 63 6b`.
-- The `SQD1` frame header is big-endian (the magic goes through `htonl`), and the TLS around it comes from a TLS 1.2/1.3 stack linked into the binary, built on LibTomCrypt, not from Windows.
+- The `SQD1` frame header is big-endian, and the TLS around it comes from a TLS 1.2/1.3 stack linked into the binary, built on LibTomCrypt, not from Windows.
 
 ## Two reports, one mutex
 
-The overlap is visible before opening any file. All seven files I could download from Check Point's SquadC table are also in PT's IOC table. For five of them (the installers `b379d07b…`, `e9f2f42e…` and `f51dc5e1…`, and the loaders `f23e5391…` and `8bbc395a…`) PT's label is SquawkDoor. PT also lists the four installers' embedded cabinets, and the `AppCab` streams I extracted hash to those entries. PT gives the backdoor's mutex as `squadc_single_instance`. Check Point says the name SquadC "is derived from an internal reference left by the author in the sample" and shows it only as a screenshot. Both decrypted SquawkDoor images I recovered have this string next to the persistence and cleanup strings. Here it is in the March build's decrypted stage 2 (offsets in the restored image are 0x400 lower):
+The overlap is visible before opening any file. All seven files I could download from Check Point's SquadC table are also in PT's IOC table. For five of them (the installers `b379d07b…`, `e9f2f42e…` and `f51dc5e1…`, and the loaders `f23e5391…` and `8bbc395a…`) PT's label is SquawkDoor. PT also lists the four installers' embedded cabinets, and the `AppCab` streams I extracted hash to those entries.
+
+PT gives the backdoor's mutex as `squadc_single_instance`. Check Point says the name SquadC "is derived from an internal reference left by the author in the sample" and shows it only as a screenshot. Both decrypted SquawkDoor images I recovered have this string next to the persistence and cleanup strings.
+
+Here it is in the March build's decrypted stage 2 (offsets in the restored image are 0x400 lower):
 
 ```hexdump
 00031d10: 6e00 0000 5769 6e64 6f77 7355 7064 6174  n...WindowsUpdat
@@ -66,7 +84,9 @@ The popup text gave me the first wrong turn. The Taiwanese installer's message, 
 7a 75 72 a8 b9 63 6b 2c    zurück,
 ```
 
-In Windows-1252 the "ü" would be the single byte `fc`. Here it is `a8 b9`, its GBK encoding. Both messages with non-ASCII characters went through code page 936 on the way in (the English and Indonesian ones are plain ASCII and can't show it). The string pools don't declare a code page of their own (the field is 0), and GBK is what Windows produces under code page 936, so I think the builder ran on a machine whose ANSI code page is 936, the default for Simplified Chinese Windows. That says something about the build environment and nothing about who sat at it.
+In Windows-1252 the "ü" would be the single byte `fc`. Here it is `a8 b9`, its GBK encoding. Both messages with non-ASCII characters went through code page 936 on the way in (the English and Indonesian ones are plain ASCII and can't show it).
+
+The string pools don't declare a code page of their own (the field is 0), and GBK is what Windows produces under code page 936. So I think the builder ran on a machine whose ANSI code page is 936, the default for Simplified Chinese Windows. That says something about the build environment and nothing about who sat at it.
 
 ## The loader reads, decrypts and jumps inside two CRT exports
 
@@ -142,11 +162,15 @@ The config is the first 396 bytes of `.data`. Decrypted:
 | 0x184 | 4 | `need_browser_waiting` | 0 |
 | 0x188 | 4 | `anti_analysis_enabled` | 1 |
 
-I ran the same decryption on the March build from the Taiwanese installer. The strings came out clean (`103.141.235[.]123:443`, `XlocmwW`, the same ping URL, interval 10), but the two flags read 430880728 and 3324418678. A flag doesn't hold numbers like that. The copy loop in that build explains it: `mov ecx, 0x61; mov esi, 0x43f000`, so 0x61 dwords, 388 bytes. The older config stops after the interval. The two "flags" I had decrypted were RC4 keystream applied to whatever follows the config in `.data`.
+I ran the same decryption on the March build from the Taiwanese installer. The strings came out clean (`103.141.235[.]123:443`, `XlocmwW`, the same ping URL, interval 10), but the two flags read 430880728 and 3324418678. A flag doesn't hold numbers like that.
 
-The missing fields match missing code. The March build has no browser list (`chrome.exe`, `msedge.exe`, `brave.exe` and the rest appear only in the May build). It does contain the twelve VM checks, as a table of `{name, function}` pairs at `0x43D4D8` that starts with "Memory Size", "Disk Size" and "VMware Registry". No address anywhere in that image points into the table, and the check functions are referenced only from it. In the May build, the table is read at `0x431798` by the scoring function that `main` calls when `anti_analysis_enabled` is set. I think the March build carries the checks as dead code: written, but not yet wired to a switch.
+The copy loop in that build explains it: `mov ecx, 0x61; mov esi, 0x43f000`, so 0x61 dwords, 388 bytes. The older config stops after the interval. The two "flags" I had decrypted were RC4 keystream applied to whatever follows the config in `.data`.
 
-One part of PT's description doesn't fit either build. PT says the backdoor resolves its imports with a custom hash seeded with `0x753AB21D` and multiplied by `0xA3AB09`. Neither constant, nor any entry of the 12-value table PT prints, appears in either image or in either decrypted stage 2. Both images use an ordinary import table (133 imports in the May build). PT analyzed more samples than these, including the one delivered by LNK, so the hash may belong to a build I don't have.
+The missing fields match missing code. The March build has no browser list (`chrome.exe`, `msedge.exe`, `brave.exe` and the rest appear only in the May build).
+
+It does contain the twelve VM checks, as a table of `{name, function}` pairs at `0x43D4D8` that starts with "Memory Size", "Disk Size" and "VMware Registry". No address anywhere in that image points into the table, and the check functions are referenced only from it. In the May build, the table is read at `0x431798` by the scoring function that `main` calls when `anti_analysis_enabled` is set.
+
+I think the March build carries the checks as dead code: written, but not yet wired to a switch.
 
 The three SquawkDoor installers, side by side:
 
@@ -157,6 +181,8 @@ The three SquawkDoor installers, side by side:
 | `f51dc5e1…` (Germany) | `98c919734910…` | 2026-05-14 06:09:07 | v2, same as above | `135.136.135[.]54:443` |
 
 All three use the magic tag `XlocmwW` and `hxxps://pplpp.microsfot[.]vip/register-ip`. Both C2 addresses are in Check Point's and PT's indicator lists. PT shows one decrypted config as a screenshot; neither report gives the three configs as text or says which build each belongs to.
+
+One part of PT's description doesn't fit either build. PT says the backdoor resolves its imports with a custom hash seeded with `0x753AB21D` and multiplied by `0xA3AB09`. Neither constant, nor any entry of the 12-value table PT prints, appears in either image or in either decrypted stage 2. Both images use an ordinary import table (133 imports in the May build). PT analyzed more samples than these, including the one delivered by LNK, so the hash may belong to a build I don't have.
 
 The [extractor](https://github.com/stateless-re/tools/tree/main/families/squawkdoor) takes an MSI, a dropped `hhc` payload, a decrypted stage 2 or a carved image. It unpacks the MSI's cabinet itself, recognizes the stub by its first nine bytes after RC4, restores the PE magics, and reads the config length from the `mov ecx, N / mov esi, .data` pair. It accepts the two lengths seen so far, 0x61 and 0x63 dwords. It reports all three installers above and rejects the SparrowDoor installer.
 
@@ -175,7 +201,22 @@ PT describes each message as a `uint32` magic `SQD1`, a `uint16` command code, a
 
 The send side converts the magic with `htonl` before writing it, and the receive side converts the first four bytes back with `ntohl` before comparing. The command code and error flag go through `htons` and the length through `htonl`, so the header is big-endian throughout. Replies to commands use code 100 (`0x64`) with the error flag set or clear, with two exceptions: the screenshot goes back under code 7, and a heartbeat (code 8) never reaches the dispatcher. `main` answers it with an empty code-8 frame.
 
-The header is never visible on the network anyway, because it travels inside TLS. The TLS is not SChannel. Neither image imports WinHTTP, WinINet or `secur32`; networking is WS2_32 only. Both images contain `LibTomCrypt 1.17`, the TLS 1.2 key derivation labels `master secret` and `key expansion`, the TLS 1.3 labels `tls13 `, `derived` and `c hs traffic`, `TLS 1.3, server CertificateVerify`, six finite-field Diffie-Hellman primes in hex (the five RFC 7919 `ffdhe` groups and an RFC 5114 group), and parameters for the curves secp256k1, P-256, P-384 and P-521. That combination matches TLSe, a small open-source TLS library built on LibTomCrypt. I haven't compared code with it, so treat the library's name as an inference. The practical point holds either way: the ClientHello comes from a bundled stack, not from Windows, so it should fingerprint differently from browsers and system services on the same host. The HTTPS check-in to `/register-ip` very likely goes through the same stack too, since the request is built as raw text (`POST %s HTTP/1.1`) and there is no other HTTP client in the import table. I didn't trace that call.
+The header is never visible on the network anyway, because it travels inside TLS. The TLS is not SChannel. Neither image imports WinHTTP, WinINet or `secur32`; networking is WS2_32 only.
+
+Both images contain:
+
+- `LibTomCrypt 1.17`;
+- the TLS 1.2 key derivation labels `master secret` and `key expansion`;
+- the TLS 1.3 labels `tls13 `, `derived` and `c hs traffic`;
+- `TLS 1.3, server CertificateVerify`;
+- six finite-field Diffie-Hellman primes in hex (the five RFC 7919 `ffdhe` groups and an RFC 5114 group);
+- parameters for the curves secp256k1, P-256, P-384 and P-521.
+
+That combination matches TLSe, a small open-source TLS library built on LibTomCrypt. I haven't compared code with it, so treat the library's name as an inference.
+
+The practical point holds either way: the ClientHello comes from a bundled stack, not from Windows. So it should fingerprint differently from browsers and system services on the same host.
+
+The HTTPS check-in to `/register-ip` very likely goes through the same stack too, since the request is built as raw text (`POST %s HTTP/1.1`) and there is no other HTTP client in the import table. I didn't trace that call.
 
 ## The other column: e5f7bbfc and b60404c1 are SparrowDoor
 
@@ -199,7 +240,11 @@ That doesn't undermine Check Point's campaign picture, only the label. Check Poi
 
 ## What I couldn't determine
 
-Three of Check Point's ten SquadC hashes (`715c2066…` and `f44159be…`, both CertFixer.msi, and the loader `054c0ffb…`) are not on MalwareBazaar, so I can't say which backdoor they carry. I don't have the LNK-delivered build PT analyzed, which is where I'd look for the table-driven API hash. I read the configs but contacted none of the hosts, so I don't know what `/register-ip` returns or whether `XlocmwW` is still accepted. And the reading of `0x431790` as "scores the twelve checks against a threshold" rests on PT's description (seven of twelve) plus the table reference. I didn't trace the threshold constant myself.
+Three of Check Point's ten SquadC hashes (`715c2066…` and `f44159be…`, both CertFixer.msi, and the loader `054c0ffb…`) are not on MalwareBazaar, so I can't say which backdoor they carry. I don't have the LNK-delivered build PT analyzed, which is where I'd look for the table-driven API hash.
+
+I read the configs but contacted none of the hosts, so I don't know what `/register-ip` returns or whether `XlocmwW` is still accepted.
+
+And the reading of `0x431790` as "scores the twelve checks against a threshold" rests on PT's description (seven of twelve) plus the table reference. I didn't trace the threshold constant myself.
 
 ## Indicators
 
@@ -248,11 +293,11 @@ The two image hashes are of the stage 2 data from offset `0x400` with the two ma
 
 ## Ending
 
-Check Point found the backdoor's name in its own mutex, and that string is still the quickest way to tell the two families apart in this campaign: `squadc_single_instance` is in every SquawkDoor image here and in none of the SparrowDoor ones. The installers can't help you, because one builder makes both kinds. Hunt the two loaders separately, by `MSVCR110.dll` next to ESET's `ecmd.exe` and by `WTSAPI32.dll` next to an Avast installer, because what the MSI drops decides which backdoor you're dealing with.
+Check Point found the backdoor's name in its own mutex. That string is still the quickest way to tell the two families apart in this campaign: `squadc_single_instance` is in every SquawkDoor image here and in none of the SparrowDoor ones. The installers can't help you, because one builder makes both kinds. Hunt the two loaders separately, by `MSVCR110.dll` next to ESET's `ecmd.exe` and by `WTSAPI32.dll` next to an Avast installer, because what the MSI drops decides which backdoor you're dealing with.
 
 ## Credits and further reading
 
 - Check Point Research, [Not All That Glitters Is Gold: Tracking CopperDragon's Sparrow Framework Around the Globe](https://research.checkpoint.com/2026/not-all-that-glitters-is-gold-tracking-copperdragons-sparrow-framework-around-the-globe/) (November 10, 2026): the SilentDelivery campaign, the SquadC name, the hashes I started from.
-- Positive Technologies, [The sparrow that chirped too loud: FamousSparrow attacks using updated SparrowDoor and the new SquawkDoor backdoor](https://positechglobal.com/en/research/pt-esc-threat-intelligence/famoussparrow-attacks-with-updated-sparrowdoor-backdoor-and-new-squawkdoor-backdoor/) (August 21, 2026): the first description of SquawkDoor, its key, config struct, protocol and commands, and of the SparrowDoor loader and config format I used to identify `e5f7bbfc…`.
+- Positive Technologies, [The sparrow that chirped too loud: FamousSparrow attacks using updated SparrowDoor and the new SquawkDoor backdoor](https://positechglobal.com/en/research/pt-esc-threat-intelligence/famoussparrow-attacks-with-updated-sparrowdoor-backdoor-and-new-squawkdoor-backdoor/) (August 21, 2026): the first description of SquawkDoor, its key, config struct, protocol and commands. It also describes the SparrowDoor loader and config format I used to identify `e5f7bbfc…`.
 - Samples from [MalwareBazaar](https://bazaar.abuse.ch/browse/tag/FamousSparrow/).
 - Extractor: [`families/squawkdoor`](https://github.com/stateless-re/tools/tree/main/families/squawkdoor).

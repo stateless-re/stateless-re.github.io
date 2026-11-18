@@ -2,7 +2,7 @@
 title: "Three x.cpe builds hide a second loader, and its string key is \"UTF-8\""
 date: 2026-11-14T19:45:28+00:00
 slug: "xcpe-mzsdk-loader"
-description: "Eight builds of x.cpe, the preinstalled agent behind the XCPE TV-box botnet: one AES-CFB config key in all of them, four signed with Android's public test platform key, and in three of them an embedded ad loader (MzSDK) whose strings, core jar and C2 protocol come apart with keys it carries in the clear."
+description: "Three of eight x.cpe builds embed a second loader, MzSDK, whose string key is the charset name UTF-8, and all eight share one AES-128-CFB config key."
 tags: ["xcpe", "x.cpe", "mzsdk", "moyu", "android", "android-tv", "supply-chain", "stringfog", "dynamic-code-loading"]
 sample:
   family: "x.cpe (XCPE botnet agent), build 6.6.0"
@@ -11,23 +11,33 @@ sample:
 toc: true
 ---
 
-Three of the eight `x.cpe` builds I could get carry a second loader that neither vendor report mentions. It sits in a package called `com.ocean.zoe`, hides its strings with StringFog, and the XOR key for those strings is the five bytes `UTF-8`, the charset name, sitting in the argument slot where StringFog expects a key. Undo that and the loader gives up everything else. Its core is a 37,035-byte resource XORed with `letu`, and the core asks `dcsdk.100ulife[.]com` for updates and plugin APKs, encrypting with an AES key written out in the strings. The agent around it is barely hidden either: all eight builds wrap their configuration traffic with the same AES-128-CFB key, and four are signed with the platform key that ships, public, in the Android source tree.
+Three of the eight `x.cpe` builds I could get carry a second loader that neither vendor report mentions. It sits in a package called `com.ocean.zoe` and hides its strings with StringFog. The XOR key for those strings is the five bytes `UTF-8`, the charset name, sitting in the argument slot where StringFog expects a key.
 
-`x.cpe` is the management agent preinstalled on the Android TV boxes behind the XCPE botnet, which Google and partners disrupted in the last week of October; both write-ups below are dated November 2. Google's Threat Intelligence Group [attributes the backdoor to the device maker Videostrong](https://cloud.google.com/blog/topics/threat-intelligence/shutting-the-door-on-the-xcpe-botnet) and documents its endpoints, its MQTT topic layout and its capabilities. [TrendAI Research's post](https://www.trendaisecurity.com/en-us/resources-insights/trendai-security-blog/trendaitm-research-helps-disrupt-android-tv-botnet-of-more-than-13-million-pre-infected-devices) says the agent "used obfuscation techniques to evade pre-release security tests" and publishes an IoC list with ten `x.cpe` SHA-256 hashes. None of the ten is on MalwareBazaar; eight are on Hybrid Analysis. I read those eight, plus one `com.abc.nexus` build, with jadx and androguard.
+Undo that and the loader gives up everything else. Its core is a 37,035-byte resource XORed with `letu`, and the core asks `dcsdk.100ulife[.]com` for updates and plugin APKs. It encrypts with an AES key written out in the strings.
+
+The agent around it is barely hidden either. All eight builds wrap their configuration traffic with the same AES-128-CFB key, and four are signed with the platform key that ships, public, in the Android source tree.
+
+`x.cpe` is the management agent preinstalled on the Android TV boxes behind the XCPE botnet. Google and partners disrupted the botnet in the last week of October; both write-ups below are dated November 2.
+
+Google's Threat Intelligence Group [attributes the backdoor to the device maker Videostrong](https://cloud.google.com/blog/topics/threat-intelligence/shutting-the-door-on-the-xcpe-botnet) and documents its endpoints, its MQTT topic layout and its capabilities. [TrendAI Research's post](https://www.trendaisecurity.com/en-us/resources-insights/trendai-security-blog/trendaitm-research-helps-disrupt-android-tv-botnet-of-more-than-13-million-pre-infected-devices) says the agent "used obfuscation techniques to evade pre-release security tests" and publishes an IoC list with ten `x.cpe` SHA-256 hashes. None of the ten is on MalwareBazaar; eight are on Hybrid Analysis.
 
 ## What I found
 
-- All eight builds (versions 6.5.0 to 6.8.6) encrypt their configuration requests and responses (`/router/config/*`, or `/cpe/config/*` in 6.5.0) as base64 AES-128-CFB with the key and IV both set to the ASCII string `Iz4iWGbzcm2pHjSm`. Google's post says the body is "an AES-encrypted JSON object"; the key and mode weren't published.
-- Four builds are signed with the AOSP test platform certificate (SHA-1 `27196e38…`), two with a Videostrong certificate (the one TrendAI lists), and two with a third certificate that copies the AOSP subject line. All eight request `android.uid.system`.
-- Builds 6.5.0 and both 6.6.0 builds embed MzSDK: a StringFog-protected shell, a core jar in `letu.jet`, and a plugin manager that downloads APKs and runs their code inside an `x.cpe` process, under its UID. The shell runs only when the server config sets `adDevourUse`.
-- The MzSDK core asks `dcsdk.100ulife[.]com` for core updates and plugin lists over HTTPS with certificate checks switched off; the files themselves come from whatever URLs the server returns. It sends AES-256-ECB, uppercase hex, with a 32-character key in its constants. The domain is already on blocklists (Plume's XCPE list, and maltrail under an Android.Vo1d label), but I found no description of the SDK.
+- All eight builds (6.5.0 to 6.8.6) encrypt their config traffic as base64 AES-128-CFB, with key and IV both set to `Iz4iWGbzcm2pHjSm`. Google's post calls the body AES-encrypted, but the key and mode weren't published.
+- Four builds are signed with the AOSP test platform certificate (SHA-1 `27196e38…`), two with a Videostrong certificate, and two with a third that copies the AOSP subject. All eight request `android.uid.system`.
+- Builds 6.5.0 and both 6.6.0 builds embed MzSDK, which runs downloaded plugin APKs inside an `x.cpe` process, under its UID. It runs only when the server config sets `adDevourUse`.
+- The MzSDK core asks `dcsdk.100ulife[.]com` for updates and plugins, encrypting with AES-256-ECB and a key in its constants. The domain is already on blocklists, but I found no description of the SDK.
 - In 6.8.x the SDK is gone, matching Google's account of modules moving into `com.abc.nexus`. Nexus 1.5.3 keeps a `DevourService` with the same default channel, `lx102`, and it starts `com.mm.a.moyu`.
 
 ## Eight builds, three signers
 
-TrendAI's IoC file labels 49 lines "x.cpe sample APK": ten are SHA-256 hashes and 39 are 40 hex characters long, so SHA-1. I looked up all 60 SHA-256 hashes in the file on Hybrid Analysis, and 17 of them (all ten `x.cpe` hashes, the five signed nexus builds and the two `com.mm.a.moyu` files) on MalwareBazaar. MalwareBazaar had none of the 17. Hybrid Analysis had 21 of the 60, including eight of the ten `x.cpe` APKs (`247ee397…` and `b01cd8e6…` returned 404). Only one of the eight had a malicious verdict on Hybrid Analysis: `07b511a6`, flagged by 2 of 23 engines in its Metadefender scan. The other seven sat at "unknown".
+TrendAI's IoC file labels 49 lines "x.cpe sample APK": ten are SHA-256 hashes and 39 are 40 hex characters long, so SHA-1.
 
-The manifests and signing blocks, from `apkinfo.py` (androguard):
+I looked up all 60 SHA-256 hashes in the file on Hybrid Analysis, and 17 of them (all ten `x.cpe` hashes, the five signed nexus builds and the two `com.mm.a.moyu` files) on MalwareBazaar. MalwareBazaar had none of the 17. Hybrid Analysis had 21 of the 60, including eight of the ten `x.cpe` APKs (`247ee397…` and `b01cd8e6…` returned 404).
+
+Only one of the eight had a malicious verdict on Hybrid Analysis: `07b511a6`, flagged by 2 of 23 engines in its Metadefender scan. The other seven sat at "unknown".
+
+I read those eight, plus one `com.abc.nexus` build, with jadx and androguard. The manifests and signing blocks, from `apkinfo.py` (androguard):
 
 | Build | Version (code) | Signer SHA-1 | Signer subject | HA `submitted_at` |
 |---|---|---|---|---|
@@ -42,7 +52,11 @@ The manifests and signing blocks, from `apkinfo.py` (androguard):
 
 `27196e386b875e76adf700e7ea84e4c6eee33dfa` is the SHA-1 fingerprint of `platform.x509.pem` in AOSP's `build/target/product/security/` directory. I fetched the file from googlesource and compared. That key is the test key every AOSP checkout ships with, private half included, and it is supposed to be replaced before a device goes to market. `a48cd72e…` is the certificate TrendAI lists as the "x.cpe signing certificate". `64be9010…` has the same `CN=Android, O=Android, L=Mountain View` subject as the test key but a 2022 issue date, so it is a different key that copies the subject line.
 
-Every build sets `android:sharedUserId="android.uid.system"`. Android only lets an APK join that UID if it carries the same certificate as the firmware's platform package. A box that runs a test-key build as the system user therefore has firmware signed with the AOSP test platform key, and on such a box any APK signed with that public key can claim the system UID too. I had no firmware images, so this follows from Android's rules rather than from an image I inspected. TrendAI writes that the implant "runs as a system app signed with the manufacturer's key". Only two of these eight builds carry a certificate with the manufacturer's name in it; four carry the public test key, and I can't say who owns `64be9010…`.
+Every build sets `android:sharedUserId="android.uid.system"`. Android only lets an APK join that UID if it carries the same certificate as the firmware's platform package.
+
+A box that runs a test-key build as the system user therefore has firmware signed with the AOSP test platform key. On such a box, any APK signed with that public key can claim the system UID too. I had no firmware images, so this follows from Android's rules rather than from an image I inspected.
+
+TrendAI writes that the implant "runs as a system app signed with the manufacturer's key". Only two of these eight builds carry a certificate with the manufacturer's name in it. Four carry the public test key, and I can't say who owns `64be9010…`.
 
 ## One config key in every build
 
@@ -74,7 +88,7 @@ The 16-byte key is also the IV (1). Java's `CFB` here is full-block CFB-128, so 
 | `softwareVersion`, `hardwareVersion` | `ro.product.firmware` and a hardware-version property |
 | `country`, `cpeVersion`, `timestamp` | cached country, `versionCode|versionName`, milliseconds |
 
-Responses use the same wrapper, and `x.cpe` stores the still-encrypted string in its preferences, decrypting it on each read. The extractor below reads the key from each APK's `EncryptUtils.KEY` field. All eight builds report the same key, so one key decrypts anything captured from any of them, including what sits on the device in preferences.
+Responses to `/router/config/*` (or `/cpe/config/*` in 6.5.0) use the same wrapper, and `x.cpe` stores the still-encrypted string in its preferences, decrypting it on each read. The extractor below reads the key from each APK's `EncryptUtils.KEY` field. All eight builds report the same key, so one key decrypts anything captured from any of them, including what sits on the device in preferences.
 
 The host changes between builds. 6.5.0 builds `ott{major}{gms|gtvs}.szbboys[.]com`. 6.5.7 and later build `stb{major}{gms|gtvs}.anyevonline[.]com`, and 6.8.x adds a fixed `mcstb.anyevonline[.]com` when the `ro.mecool.device` property is true. The MQTT topic list grows from 32 actions in 6.5.0 to 44 in 6.8.x. Google gives the topic layout and the capabilities but not the action strings; I'll leave them out here too, and the extractor prints them per build.
 
@@ -179,7 +193,9 @@ JSON bodies go out as `hex(AES(json))` in uppercase and come back the same way. 
 | `/pluginsync` | `channel`, `deviceId`, `localPluginInfos[{packageName, versionNo}]` | `code` (`0000` is success), `data[{packageName, versionNo, url, md5, status}]` | Downloads each plugin with `status` 0 from its `url`, checks MD5, loads it |
 | `/reportcomp` | list of `{uploadKey, uploadValue, ext1–3, channel, deviceId, macAddress, androidId, androidBrand, androidModel, androidVersion, terminalVersion, terminalTime}` | not parsed for content | Telemetry: `SDK_INIT`, `MZ_DOWNLOAD`, `DOWNLOAD_TIMES`, `ERROR_DOWNLOAD`, `PLUG_MANAGER` 112/718/719/720, `CRASH_EXCEPTION` |
 
-The shell's own `/sdk` request uses the same key, but it parses `data` as a string holding JSON rather than as an object, so the two stages expect slightly different server answers. The core asks `/pluginsync` every 900,000 ms (15 minutes) plus 0 to 24 seconds of jitter, and re-checks `/sdk` on a separate timer of 120 to 199 one-minute ticks, never more often than every 15 minutes. A server-sent `intervalTime` replaces the 15 minutes. The jar and APK URLs come from the server's answers, so the files can live on any host.
+The shell's own `/sdk` request uses the same key, but it parses `data` as a string holding JSON rather than as an object, so the two stages expect slightly different server answers.
+
+The core asks `/pluginsync` every 900,000 ms (15 minutes) plus 0 to 24 seconds of jitter. It re-checks `/sdk` on a separate timer of 120 to 199 one-minute ticks, never more often than every 15 minutes. A server-sent `intervalTime` replaces the 15 minutes. The jar and APK URLs come from the server's answers, so the files can live on any host.
 
 Plugins are APKs. The core keeps a plugin list as JSON in `.honor`, stores each APK as `files/.honor/<CRC32(package + version)>.apk`, and loads it with a class loader of its own:
 
@@ -197,7 +213,7 @@ init.invoke(null, this.c, bundle, DataReporter.class);  // (1)
 
 The entry point is the plugin's first activity class, but nothing starts it as an activity. The core calls a static `init(Context, Bundle, Class)` on it (1), passing the reporter class so plugins can send telemetry through the same channel. The class names (`DLPluginManager`, `DLProxyActivity`, `DLIntent`) match the open-source dynamic-load-apk framework. A plugin therefore runs in `x.cpe`'s `:AdvService` process, with the system UID, and never shows up as an installed package.
 
-Upgrades between cores are polite. The shell's shared map holds the channel under the key `letu`, and each core, on start, looks under `MDz19AA` for a `Method` left by the core before it, invokes it (the log line translates to "I told the previous SDK to kill itself"), and then stores its own `callAbort` there. Loaded plugins are carried across under `b2XyDz211`.
+Upgrades between cores are polite. The shell's shared map holds the channel under the key `letu`. On start, each core looks under `MDz19AA` for a `Method` left by the core before it and invokes it (the log line translates to "I told the previous SDK to kill itself"). Then it stores its own `callAbort` there. Loaded plugins are carried across under `b2XyDz211`.
 
 ## What 6.8.x does instead
 
@@ -212,7 +228,8 @@ The Devour name and its default survive the move. Nexus 1.5.3 has a `DevourServi
 I think, with medium confidence, that MzSDK is an earlier, embedded form of what Google calls Moyu. The evidence:
 
 - Google says Moyu is started on these devices by `com.abc.nexus.service.DevourService`. MzSDK is started by the Devour flag in `x.cpe`, with the same default channel `lx102` that nexus's `DevourService` uses.
-- Google describes Moyu as three stages: "an offline dropper that reconstructs and loads an embedded second stage", a second stage that "polls an update C2 to download, decrypt, and load the third stage". MzSDK's shell can rebuild `letu.jet` offline (it asks `/sdk` first and falls back to the embedded copy), and its core polls `/pluginsync` and loads what comes back. The fit is loose: MzSDK checks plugins by MD5 but doesn't decrypt them.
+- Google describes Moyu as three stages, starting with "an offline dropper that reconstructs and loads an embedded second stage". MzSDK's shell can rebuild `letu.jet` offline (it asks `/sdk` first and falls back to the embedded copy).
+- Moyu's second stage "polls an update C2 to download, decrypt, and load the third stage". MzSDK's core polls `/pluginsync` and loads what comes back. The fit is loose: MzSDK checks plugins by MD5 but doesn't decrypt them.
 
 Against it: I haven't compared code with a Moyu sample from nexus, and the strings, packages and C2 differ. The core's own log tags are `MzSDK` and `com.mz.sdk.MzInnerEntry`, which suggests its developers called it `com.mz.sdk`, a name that doesn't point at Moyu or away from it. TrendAI also lists a `com.mm.a.moyu` dropper and inner DEX (`d4eba0aa…`, `e42d31c3…`), but neither was on Hybrid Analysis.
 
@@ -226,8 +243,12 @@ I nearly called `dcsdk.100ulife[.]com` a new indicator. A code search turned it 
 
 ## What I couldn't determine
 
-- What the plugins were. No plugin APK, plugin list or server response is in any sample, and Hybrid Analysis ran static analysis only on `07b511a6`, so there is no captured traffic either. The `config` and `sdk` decrypt modes of the extractor are tested by round trip against the reconstructed scheme, not on real captures.
-- What `feggen` was for. The shell carries twelve classes compiled from files named `HookManager`, `Hook`, `ArtMethod`, `DalvikMethod`, `SizeOf` and the like, around a native class `feggen` that loads `libege.so` and turns `Method` objects into raw addresses: an ART method-hooking helper. Nothing on the shell's code path references those classes, and `libege.so` isn't in any of the three APKs or in the core, so in these builds it's dead code.
+- What the plugins were. No plugin APK, plugin list or server response is in any sample. Hybrid Analysis ran static analysis only on `07b511a6`, so there is no captured traffic either.
+- Whether the extractor's `config` and `sdk` decrypt modes work on real traffic. They are tested by round trip against the reconstructed scheme, not on real captures.
+- What `feggen` was for. It's a native class that loads `libege.so` and turns `Method` objects into raw addresses: an ART method-hooking helper.
+
+  The shell carries twelve classes around it, compiled from files named `HookManager`, `Hook`, `ArtMethod`, `DalvikMethod`, `SizeOf` and the like. Nothing on the shell's code path references those classes. `libege.so` isn't in any of the three APKs or in the core, so in these builds it's dead code.
+
 - Two of TrendAI's ten `x.cpe` SHA-256 hashes, which neither service had. I didn't look up the 39 SHA-1-length values.
 - Whether [Synthient's write-up](https://synthient.com/blog/the-internals-of-a-badbox-operation) or Plume's gated whitepaper already cover MzSDK. The first returned 403 to my fetch and the second needs a form, so I couldn't read either.
 
@@ -276,7 +297,9 @@ Network:
 
 ## Ending
 
-TrendAI's phrase was "obfuscation techniques", and in a sense it was right: there is a hidden loader, and its strings are encrypted. But the key for those strings is the name of a character set, the next layer's key is the name of its own file, and the network key is a constant in the clear. The domain made it onto blocklists; what the SDK does once it's running hadn't been written down. For defenders the durable part is the folder: a `.honor` directory under `x.cpe`'s data, and the test-key certificate on the system apps beside it.
+TrendAI's phrase was "obfuscation techniques", and in a sense it was right: there is a hidden loader, and its strings are encrypted. But the key for those strings is the name of a character set, the next layer's key is the name of its own file, and the network key is a constant in the clear.
+
+The domain made it onto blocklists; what the SDK does once it's running hadn't been written down. For defenders the durable part is the folder: a `.honor` directory under `x.cpe`'s data, and the test-key certificate on the system apps beside it.
 
 ## Credits and further reading
 

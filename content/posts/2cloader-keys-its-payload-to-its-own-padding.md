@@ -1,7 +1,7 @@
 ---
 title: "2CLoader keys its payload to its own padding"
 date: 2026-11-13T21:06:39+00:00
-description: "Twelve 2CLoader builds unpacked: how the builder rewrites the gaps between functions so every build gets a different AES key, and what the 18 identity hooks fake."
+description: "2CLoader derives its AES key from the SHA-256 of its own code, and its builder rewrites the padding between functions so each build gets a different key."
 tags: ["2cloader", "loader", "config-extraction", "windows"]
 sample:
   family: "2CLoader"
@@ -10,23 +10,30 @@ sample:
 toc: true
 ---
 
-2CLoader derives the AES-256 key for its payload from the SHA-256 of its own code section, and its builder changes that hash for every build by rewriting the padding between functions. Across 11 builds with the same code layout, 1,644 byte positions differ, and every one of them sits in a gap that a compiler would have filled with `CC`. The gaps hold randomly chosen NOP instructions, XORed with a one-byte key so they don't look like NOPs.
+2CLoader derives the AES-256 key for its payload from the SHA-256 of its own code section, and its builder changes that hash for every build by rewriting the padding between functions.
 
-Zscaler ThreatLabz [described 2CLoader](https://www.zscaler.com/blogs/security-research/2cloader-new-malware-loader-delivering-vidar-and-remus) on September 30, 2026, with the config layout, the decryption steps and 20 hashes. The report doesn't say how two builds of the same loader end up with different keys, and lists only some of the API hooks. Twelve of the 20 hashes are on MalwareBazaar. I pulled all twelve. My notes list no family before this one, so this is the first real sample on the blog.
+Across 11 builds with the same code layout, 1,644 byte positions differ, and every one of them sits in a gap that a compiler would have filled with `CC`. The gaps hold randomly chosen NOP instructions, XORed with a one-byte key so they don't look like NOPs.
+
+Zscaler ThreatLabz [described 2CLoader](https://www.zscaler.com/blogs/security-research/2cloader-new-malware-loader-delivering-vidar-and-remus) on September 30, 2026, with the config layout, the decryption steps and 20 hashes. The report doesn't say how two builds of the same loader end up with different keys, and lists only some of the API hooks.
+
+Twelve of the 20 hashes are on MalwareBazaar. I pulled all twelve. My notes list no family before this one, so this is the first real sample on the blog.
 
 ## What I found
 
-- All twelve files are the same loader stub (one import hash, `905d6e2fd95bb9d68bb959ec7e8cfb12`). Eleven have byte-identical `.rdata` and `.data` sections and differ only in 266 padding gaps in `.text`.
+- All twelve files are the same loader stub (one import hash, `905d6e2fd95bb9d68bb959ec7e8cfb12`). Eleven differ only in 266 padding gaps in `.text`.
 - The padding is NOP encodings XORed with one byte. That byte is the string key XOR 0x44 in both stub versions I have (0x37 and 0x73, 0x9e and 0xda).
-- The config field `bt` is a Unix build time. The PE timestamps are random (1989 to 2105), but `bt` precedes the MalwareBazaar first-seen time in every sample, by under 5 minutes in one case.
-- The 18 identity hooks cover more than names and registry values: SMBIOS tables, disk model and serial, MAC addresses and the display adapter string are rewritten too, from a generator seeded with the process ID and tick count.
-- The C2 channel is one-way. The loader posts progress reports and never reads a response body. None of the twelve builds turns on the anti-VM, anti-debug or user-activity checks.
+- The config field `bt` is a Unix build time. It precedes the MalwareBazaar first-seen time in every sample, by under 5 minutes in one case.
+- The 18 identity hooks go beyond names and registry values: they also rewrite SMBIOS tables, disk model and serial, MAC addresses and the display adapter string.
+- The C2 channel is one-way. The loader posts progress reports and never reads a response body.
+- None of the twelve builds turns on the anti-VM, anti-debug or user-activity checks.
 
 ## Twelve files, one stub
 
 Triage looks the same for every file: x64, seven sections, MSVC runtime strings, and one resource of type 88, name 521, with entropy 8.00. The code section is 0x1a1b1 bytes in eleven samples and 0x1a1c1 in the oldest one.
 
-The headers lie. Every sample has a different `TimeDateStamp`, from 1989 to 2105, and a different linker version, from 14.13 to 16.37. Version resources and icons are cloned from legitimate software: Easy Anti-Cheat Service in 7 samples, Clownfish Voice Changer in 3, .NET Host and Windows Error Reporting in 1 each. Ten of the twelve also carry an Authenticode blob copied from a legitimate file. None verifies:
+The headers lie. Every sample has a different `TimeDateStamp`, from 1989 to 2105, and a different linker version, from 14.13 to 16.37.
+
+Version resources and icons are cloned from legitimate software: Easy Anti-Cheat Service in 7 samples, Clownfish Voice Changer in 3, .NET Host and Windows Error Reporting in 1 each. Ten of the twelve also carry an Authenticode blob copied from a legitimate file. None verifies:
 
 ```
 00178211  signer: O=EasyAntiCheat Oy          verify: BAD_DIGEST|BAD_SIGNATURE
@@ -68,9 +75,11 @@ The loader calls `FindResourceW(module, 0x209, 0x58)`, checks that the resource 
 | 0xd4 | 4 | task interval, hours | 7 |
 | 0xd8 | 4 | decompressed payload size | 1,357,312 |
 
-`bt` is a Unix timestamp: 1788090685 is 2026-08-30 11:51:25 UTC, and MalwareBazaar first saw this file at 15:31:44 the same day. The pattern holds for all twelve. `bt` is always earlier than first-seen, by 4 minutes 49 seconds at the shortest, and by less than 6.5 hours in eleven of twelve. Since the PE timestamp is random, `bt` is the only honest date in the file. The loader sends it home in its first report.
+`bt` is a Unix timestamp: 1788090685 is 2026-08-30 11:51:25 UTC, and MalwareBazaar first saw this file at 15:31:44 the same day.
 
-`pn` is 16 bytes and holds a file name: `default.exe` in 4 samples, `build_sbuild.exe` in 4, `build_tbuild.exe` in 3, `build.exe` in 1. I read it as the name of the payload file the operator fed to the builder, because it tracks the payload: all four `default.exe` builds carry a payload of about 225 KB, and all the `build*` ones carry 1.1 to 1.4 MB.
+The pattern holds for all twelve. `bt` is always earlier than first-seen, by 4 minutes 49 seconds at the shortest, and by less than 6.5 hours in eleven of twelve. Since the PE timestamp is random, `bt` is the only honest date in the file. The loader sends it home in its first report.
+
+`pn` is 16 bytes and holds a file name: `default.exe` in 4 samples, `build_sbuild.exe` in 4, `build_tbuild.exe` in 3, `build.exe` in 1. I read it as the name of the payload file the operator fed to the builder, because it tracks the payload. All four `default.exe` builds carry a payload of about 225 KB, and all the `build*` ones carry 1.1 to 1.4 MB.
 
 The hours field drives a second scheduled task. The strings next to its only user are a task XML with a `TimeTrigger`, a `<Repetition><Interval>` filled from the format `PT%uH`, the task name `WindowsSecurityHealth`, and a fallback command line `/create /sc HOURLY /mo`. So besides the logon task the report describes, the loader re-runs itself every 3, 6 or 7 hours in these samples.
 
@@ -117,20 +126,26 @@ build      bytes after C3 at 0x140001955     same bytes XOR key
 
 A disassembler shows the left column as junk (`jl`, `jae`, `insb`). XORed with 0x73 it is a sequence of standard x86 NOPs: `0f 1f 80 00 00 00 00` is the 7-byte `nop dword ptr [rax+0]`, `66 90` the 2-byte one. Each build fills the same 10-byte gap with a different random mix that adds up to 10 bytes.
 
-My first attempt to measure this went wrong. I took the gaps between consecutive `.pdata` entries as "padding" and tried to decode them all; 94 of 263 failed. Those gaps aren't all padding: leaf functions have no unwind entry, so real code sits in some of them. Comparing builds was the better instrument. Across the eleven samples, 1,644 byte positions vary. Every varying byte is one of nine values (`15 33 37 6c 73 7c e3 f3 f7`), which are exactly the bytes of the NOP encodings XORed with 0x73. They fall in 266 gaps. One gap refused to parse, and that was my own script's fault: it had grown the region one byte too far and swallowed the `33` opcode of the next function.
+My first attempt to measure this went wrong. I took the gaps between consecutive `.pdata` entries as "padding" and tried to decode them all; 94 of 263 failed. Those gaps aren't all padding: leaf functions have no unwind entry, so real code sits in some of them.
+
+Comparing builds was the better instrument. Across the eleven samples, 1,644 byte positions vary. Every varying byte is one of nine values (`15 33 37 6c 73 7c e3 f3 f7`), which are exactly the bytes of the NOP encodings XORed with 0x73. They fall in 266 gaps.
+
+One gap refused to parse, and that was my own script's fault: it had grown the region one byte too far and swallowed the `33` opcode of the next function.
 
 For a check that needs no second sample, I decoded every run of padding that follows a `ret`. In each of the twelve files that is 181 runs and 1,211 bytes, all valid NOP sequences. None of the twelve `.text` sections contains a single `CC CC` pair, which is itself odd for MSVC output.
 
-Why XOR the NOPs? A stretch of real NOPs between functions is rare but harmless-looking; I think the XOR is there so the filler doesn't form a recognizable byte pattern, though the nine-value alphabet it produces is just as recognizable once you know the key. The padding key is tied to the string key. (A copy of the string key sits in `.data` at RVA 0x29008; it is the only byte of `.data` that differs between the two stub versions.)
+The padding key is tied to the string key:
 
 | Stub | String key | Padding key | XOR of the two |
 |---|---|---|---|
 | 11 builds, Aug 13 to Sep 4 | 0x37 | 0x73 | 0x44 |
 | 1 build, Aug 1 | 0x9e | 0xda | 0x44 |
 
-Two stub versions are only two data points, but 0x44 held for both.
+Two stub versions are only two data points, but 0x44 held for both. (A copy of the string key sits in `.data` at RVA 0x29008; it is the only byte of `.data` that differs between the two stub versions.)
 
 The string key was my second wrong turn. The report gives 0x37 for the sample it analyzed, and I assumed it for every file. It held for eleven. The August 1 build decoded to garbage, because that stub uses 0x9e. Anything that matches this loader on strings XORed with 0x37 misses it.
+
+Why XOR the NOPs? A stretch of real NOPs between functions is rare but harmless-looking. I think the XOR is there so the filler doesn't form a recognizable byte pattern, though the nine-value alphabet it produces is just as recognizable once you know the key.
 
 ## Unpacking twelve payloads
 
@@ -162,11 +177,17 @@ The whole chain, from config to decrypted payload, is now a script: [`families/2
 | `3286ff47` | 2026-09-04 18:11:56 | `build.exe` | 0x80 | 1,392,128 | Vidar |
 | `0a2ef2c3` | 2026-09-04 18:14:06 | `build_tbuild.exe` | 0x80 | 1,392,128 | Vidar |
 
-The family tags are MalwareBazaar's labels for the loader files, not my identification of what's inside; I stopped at the loader. One label I'd distrust: the `njrat` payload is a native x64 PE with no CLR header, built with the same compiler as the Vidar-tagged ones, and njRAT is a .NET program. Builds also come in pairs about two minutes apart (August 21, August 29, September 4), each wrapping a different payload.
+The family tags are MalwareBazaar's labels for the loader files, not my identification of what's inside; I stopped at the loader. One label I'd distrust: the `njrat` payload is a native x64 PE with no CLR header, built with the same compiler as the Vidar-tagged ones, and njRAT is a .NET program.
+
+Builds also come in pairs about two minutes apart (August 21, August 29, September 4), each wrapping a different payload.
 
 *Update, November 13: the payloads are now identified. Eight are Vidar and four are Remus, and the `njrat`-tagged one is Vidar 2.8; configs and C2 indicators are in [What 2CLoader delivered](/2026/what-2cloader-delivered/).*
 
-The other config fields barely vary. All twelve have `fl` 0, persistence 0x3f (all six methods), no sleep, no dropped file, no message box, and `dllhost.exe` as the injection target. The option flags take three values: 0x480 in 6 samples, 0x80 in 4, 0x0 in 2. Using the report's flag meanings, 0x80 is parent-process spoofing and 0x400 is the API hooks. Bit 0x1 (anti-VM), 0x10 (anti-debug), 0x40 (wait for user activity) and 0x100 (lock file) are clear in every sample. The scoring anti-VM code the report walks through is in the stub, along with its lists of VM tools, sandbox DLLs and analyst user names, but no operator in this set switched it on.
+The other config fields barely vary. All twelve have `fl` 0, persistence 0x3f (all six methods), no sleep, no dropped file, no message box, and `dllhost.exe` as the injection target.
+
+The option flags take three values: 0x480 in 6 samples, 0x80 in 4, 0x0 in 2. Using the report's flag meanings, 0x80 is parent-process spoofing and 0x400 is the API hooks.
+
+Bit 0x1 (anti-VM), 0x10 (anti-debug), 0x40 (wait for user activity) and 0x100 (lock file) are clear in every sample. The scoring anti-VM code the report walks through is in the stub, along with its lists of VM tools, sandbox DLLs and analyst user names. No operator in this set switched it on.
 
 ## What the hooks fake
 
@@ -202,22 +223,38 @@ BOOL hook_DeviceIoControl(HANDLE h, DWORD code, void *in, DWORD in_len,
 }
 ```
 
-0x2d1400 at (1) is `IOCTL_STORAGE_QUERY_PROPERTY`, the usual way to ask a disk for its model and serial. At (2) the handler overwrites the three strings a hardware fingerprint is built from. The firmware handler does the same for `GetSystemFirmwareTable` with provider `RSMB`: it walks the raw SMBIOS table, rewrites the strings of structure types 0 to 3 (BIOS, system, baseboard, chassis) and overwrites the 16-byte system UUID. The adapter handlers write a fake 6-byte MAC into every adapter, XORed with the adapter's index so two adapters don't collide.
+0x2d1400 at (1) is `IOCTL_STORAGE_QUERY_PROPERTY`, the usual way to ask a disk for its model and serial. At (2) the handler overwrites the three strings a hardware fingerprint is built from.
 
-The fake values come from pools stored XORed in `.rdata`: board vendors (`ASUSTeK INC.`, `Dell Inc.`, `Lenovo`, `Gigabyte`, `ASRock`), boards (`PRIME Z690-P`, `B550 Steel Legend`, `Z690 Master`), GPUs (`NVIDIA GeForce RTX 3060`, `NVIDIA GeForce RTX 2080`, `AMD Radeon RX` with a random model number), disks (`Samsung SSD 980 Pro`, `Seagate FireCuda 530`, `Crucial MX500`), `Windows 11 Pro`, and a BIOS date of `01/01/2024`. A linear congruential generator picks from them:
+The firmware handler does the same for `GetSystemFirmwareTable` with provider `RSMB`: it walks the raw SMBIOS table, rewrites the strings of structure types 0 to 3 (BIOS, system, baseboard, chassis) and overwrites the 16-byte system UUID. The adapter handlers write a fake 6-byte MAC into every adapter, XORed with the adapter's index so two adapters don't collide.
+
+The fake values come from pools stored XORed in `.rdata`:
+
+- board vendors (`ASUSTeK INC.`, `Dell Inc.`, `Lenovo`, `Gigabyte`, `ASRock`)
+- boards (`PRIME Z690-P`, `B550 Steel Legend`, `Z690 Master`)
+- GPUs (`NVIDIA GeForce RTX 3060`, `NVIDIA GeForce RTX 2080`, `AMD Radeon RX` with a random model number)
+- disks (`Samsung SSD 980 Pro`, `Seagate FireCuda 530`, `Crucial MX500`)
+- `Windows 11 Pro`, and a BIOS date of `01/01/2024`
+
+A linear congruential generator picks from them:
 
 ```
 seed  = (GetTickCount() ^ (pid << 16) ^ 0xa5a5dead) * 0xcfdddf21 + 0xcd1dcf18
 state = state * 0x41c64e6d + 0x3039        // each draw uses the top byte
 ```
 
-The seed mixes the process ID and the uptime in milliseconds, so the same build on the same machine invents a different computer on every run: new name, new user, new machine GUID, new SMBIOS UUID, new MAC, new disk serial.
+The seed mixes the process ID and the uptime in milliseconds. So the same build on the same machine invents a different computer on every run: new name, new user, new machine GUID, new SMBIOS UUID, new MAC, new disk serial.
 
-That gives a better guess at intent than the name hooks alone did. The hooks sit in the process the payload runs in, and the payload here is an infostealer that fingerprints its host. I think the spoofer exists so the stealer sees a plausible, never-seen-before gaming desktop wherever it lands, whether that defeats the stealer's own virtual-machine checks, per-machine deduplication on the panel, or both. I can't tell which from the loader alone. What I can say is that a hardware ID reported by a payload that came through this loader with bit 0x400 set is fiction.
+That gives a better guess at intent than the name hooks alone did. The hooks sit in the process the payload runs in, and the payload here is an infostealer that fingerprints its host.
+
+I think the spoofer exists so the stealer sees a plausible, never-seen-before gaming desktop wherever it lands, whether that defeats the stealer's own virtual-machine checks, per-machine deduplication on the panel, or both. I can't tell which from the loader alone.
+
+What I can say is that a hardware ID reported by a payload that came through this loader with bit 0x400 set is fiction.
 
 ## The reporting channel never reads an answer
 
-The stub resolves seven WinHTTP functions: `WinHttpOpen`, `WinHttpConnect`, `WinHttpOpenRequest`, `WinHttpSendRequest`, `WinHttpReceiveResponse`, `WinHttpCloseHandle` and `WinHttpSetTimeouts`. None of them reads a response body. A worker thread takes messages from a 32-slot queue and sends each as `POST /api/beacon` over TLS to `aware-cr1[.]com`, calls `WinHttpReceiveResponse`, and closes the handle. Between messages it sleeps `GetTickCount() % 450 + 50` milliseconds. If the first request can't be opened, reporting is switched off for the rest of the run.
+The stub resolves seven WinHTTP functions: `WinHttpOpen`, `WinHttpConnect`, `WinHttpOpenRequest`, `WinHttpSendRequest`, `WinHttpReceiveResponse`, `WinHttpCloseHandle` and `WinHttpSetTimeouts`. None of them reads a response body.
+
+A worker thread takes messages from a 32-slot queue and sends each as `POST /api/beacon` over TLS to `aware-cr1[.]com`, calls `WinHttpReceiveResponse`, and closes the handle. Between messages it sleeps `GetTickCount() % 450 + 50` milliseconds. If the first request can't be opened, reporting is switched off for the rest of the run.
 
 So there is no tasking, and the question the report leaves open about the server's reply has a short answer: the loader ignores it. The body is JSON XORed with a repeating 32-byte key, `body[i] ^ key[i & 0x1f]`, the key being the one ThreatLabz published (`4a7b3c1d8e5fa0d1629324f5b647c809e172538435a6d71849fa0b6c9d2ebf50`). It is identical in all twelve samples and both stub versions.
 
@@ -237,7 +274,9 @@ This is build telemetry for a service, with a build ID, a build time and the pay
 
 ## What I couldn't determine
 
-Eight of the 20 reported hashes aren't on MalwareBazaar, so the counts above describe twelve samples, not the family. I didn't analyze the payloads, so the family names are borrowed labels. No sample here uses the RunPE path or the .NET path (`fl` is 0 everywhere), so I took the report's description of both and of the remote-process hooks without reading that code. I don't know whether the 0x44 relation between the two XOR keys is designed or an accident of how the builder picks them. I didn't contact `aware-cr1[.]com`, so I can't say whether it still answers.
+Eight of the 20 reported hashes aren't on MalwareBazaar, so the counts above describe twelve samples, not the family. I didn't analyze the payloads, so the family names are borrowed labels. No sample here uses the RunPE path or the .NET path (`fl` is 0 everywhere), so I took the report's description of both and of the remote-process hooks without reading that code.
+
+I don't know whether the 0x44 relation between the two XOR keys is designed or an accident of how the builder picks them. I didn't contact `aware-cr1[.]com`, so I can't say whether it still answers.
 
 ## Indicators
 
@@ -297,8 +336,12 @@ The eight hashes from the report that I could not obtain, and the in-the-wild do
 
 ## The padding gives it away
 
-The builder goes to some trouble to make every file unique: a random timestamp, a random linker version, borrowed version info, a borrowed signature, and a few hundred rewritten bytes of filler so the code hash and the key change. The filler is the part that backfires. A stub with no `CC` between its functions and a nine-letter alphabet in the gaps is easier to recognize than one that left the compiler's padding alone, and the config trailer and the telemetry key didn't change across five weeks of builds. Match on those, and treat any hardware ID a wrapped stealer reports as invented.
+The builder goes to some trouble to make every file unique: a random timestamp, a random linker version, borrowed version info, a borrowed signature, and a few hundred rewritten bytes of filler so the code hash and the key change. The filler is the part that backfires.
+
+A stub with no `CC` between its functions and a nine-letter alphabet in the gaps is easier to recognize than one that left the compiler's padding alone. And the config trailer and the telemetry key didn't change across five weeks of builds. Match on those, and treat any hardware ID a wrapped stealer reports as invented.
 
 ## Credits
 
-[Muhammed Irfan V A at Zscaler ThreatLabz](https://www.zscaler.com/blogs/security-research/2cloader-new-malware-loader-delivering-vidar-and-remus) found and named 2CLoader and published the config structure, the decryption steps, the flag meanings and the telemetry key that this post builds on; ThreatLabz also published a decryption script and the blocklists. Samples are from [MalwareBazaar](https://bazaar.abuse.ch/). The decompression follows Microsoft's [MS-XCA](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-xca/a8b7cb0a-92a6-4187-a23b-5e14273b96f8) specification.
+- [Muhammed Irfan V A at Zscaler ThreatLabz](https://www.zscaler.com/blogs/security-research/2cloader-new-malware-loader-delivering-vidar-and-remus) found and named 2CLoader and published the config structure, the decryption steps, the flag meanings and the telemetry key that this post builds on. ThreatLabz also published a decryption script and the blocklists.
+- Samples are from [MalwareBazaar](https://bazaar.abuse.ch/).
+- The decompression follows Microsoft's [MS-XCA](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-xca/a8b7cb0a-92a6-4187-a23b-5e14273b96f8) specification.

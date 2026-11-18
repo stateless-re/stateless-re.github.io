@@ -2,7 +2,7 @@
 title: "NoobSaibotRAT's sandbox check averages its evidence, so a machine that fails every test gets through"
 date: 2026-11-15T10:33:52+00:00
 slug: "noobsaibotrat-evasion-average"
-description: "A 165 MB .NET 8 single-file bundle: an AES loader, an unobfuscated RAT and stealer called AgentCore, a weighted 'EvasionBrain' that lets a machine showing all five sandbox signs run the payload, a UAC bypass with the wrong CLSID, the C2 protocol, two builds' configs, and an extractor."
+description: "NoobSaibotRAT's sandbox check averages only the signals that fired, so a machine showing all five sandbox signs scores 0.69 and still runs the payload."
 tags: ["noobsaibotrat", "dotnet", "rat", "stealer", "single-file-bundle", "sandbox-evasion", "uac-bypass", "wmi-persistence", "hidden-rdp"]
 sample:
   family: "NoobSaibotRAT (AgentCore), single-file bundle"
@@ -11,21 +11,31 @@ sample:
 toc: true
 ---
 
-NoobSaibotRAT decides whether it is in a sandbox by adding up five weighted signals and dividing by the number of signals that fired. It exits when that average is above 0.7. Averaging only what fired means a weak signal pulls a strong one down: a machine with under 4 GB of RAM scores 0.8 and the RAT exits, but the same machine booted less than ten minutes ago scores (0.8 + 0.4) / 2 = 0.6 and the RAT runs. A machine that shows all five signs at once scores 0.69 and runs the payload too.
+NoobSaibotRAT decides whether it is in a sandbox by adding up five weighted signals and dividing by the number of signals that fired. It exits when that average is above 0.7. A machine that shows all five signs at once scores 0.69 and runs the payload.
 
-The check is one class, `EvasionBrain`, in a .NET 8 remote access tool and stealer whose own namespace is `AgentCore`. The sample I read is a 165 MB self-contained .NET single-file bundle uploaded to MalwareBazaar on 2026-10-23. Its submitter's comment says it arrived through LimeTorrents as a fake TV episode, `A Knight of the Seven Kingdoms S01E06 720p HMAX WEB-DL DDP.exe`, zero-padded to 2.3 GB, and that the upload is that file with the padding cut off. Threatray named the family in its [Threatray Tuesday list for 2026-10-13](https://github.com/threatray/threat-research/blob/main/ThreatrayTuesday/iocs-2026-10-13.md), with one hash, one C2 address and a link to Threatray's automated report. I found no public write-up of the family beyond that. I read the files with dnfile, ILSpy and a few short Python scripts.
+Averaging only what fired means a weak signal pulls a strong one down. A machine with under 4 GB of RAM scores 0.8 and the RAT exits. The same machine booted less than ten minutes ago scores (0.8 + 0.4) / 2 = 0.6, and the RAT runs.
+
+The check is one class, `EvasionBrain`, in a .NET 8 remote access tool and stealer whose own namespace is `AgentCore`. The sample I read is a 165 MB self-contained .NET single-file bundle uploaded to MalwareBazaar on 2026-10-23.
+
+Its submitter's comment says it arrived through LimeTorrents as a fake TV episode, `A Knight of the Seven Kingdoms S01E06 720p HMAX WEB-DL DDP.exe`, zero-padded to 2.3 GB. The comment also says the upload is that file with the padding cut off.
+
+Threatray named the family in its [Threatray Tuesday list for 2026-10-13](https://github.com/threatray/threat-research/blob/main/ThreatrayTuesday/iocs-2026-10-13.md), with one hash, one C2 address and a link to Threatray's automated report. I found no public write-up of the family beyond that.
 
 ## What I found
 
-- The bundle holds 468 files (154.8 MB): the .NET 8 runtime with the Windows Desktop libraries, a 386 KB loader assembly named `System Process`, and the libraries the RAT needs. The loader decrypts its only resource with AES-256-CBC under the key `eu1fA7JeiTnoipSdSTiKJFxMt8PYtbaq` and runs the result in memory. The result is AgentCore, which has no obfuscation at all. Its configuration strings are Base64 XORed with `NoobSaibot`.
+- The 386 KB loader, `System Process`, decrypts AgentCore with AES-256-CBC under the key `eu1fA7JeiTnoipSdSTiKJFxMt8PYtbaq` and runs it in memory. AgentCore has no obfuscation at all.
 - `EvasionBrain` lets the payload run in 18 of the 31 non-empty combinations of its five signals, including the one where all five are present.
-- The build in the bundle tries to elevate through the CMSTPLUA COM object, but it asks for the CLSID `{3E5FC7F9-9735-4304-8133-F4A6359921b3}`. CMSTPLUA's CLSID is `{3E5FC7F9-9A51-4367-9063-A120244FBEC7}`. Only the interface ID is right.
-- The C2 protocol is length-prefixed MessagePack inside TLS, with the server certificate pinned by SHA-1 thumbprint. After an RSA-OAEP key exchange, every packet is encrypted with AES-256-CBC (larger ones LZ4-compressed first), with an HMAC-SHA256 tag that uses the AES key as its MAC key. Both public builds pin the same certificate (`E5C3774B…34E9FD`) and use different C2 addresses.
-- Eleven classes are never referenced, among them SOCKS, webcam, audio and registry modules. The Chrome DevTools password dumper runs JavaScript that always returns an empty list. Four of the 48 wallet extension IDs it looks for can't be Chrome extension IDs.
+- The bundle build's UAC bypass asks for CMSTPLUA by the wrong CLSID, `{3E5FC7F9-9735-4304-8133-F4A6359921b3}`; only the interface ID is right.
+- The C2 protocol is MessagePack inside TLS, pinned by SHA-1 thumbprint, and both public builds pin the same certificate (`E5C3774B…34E9FD`).
+- Eleven classes are never referenced, the DevTools password dumper always returns an empty list, and four of the 48 wallet extension IDs can't be Chrome extension IDs.
 
 ## A 2.3 GB download that is mostly zeros
 
-MalwareBazaar tags the upload `padded`, and at 165 MB I expected filler inside it. There isn't any. I had read only the record's `comment` field, which is empty; the submitter's note is in the separate `comments` list, and it says the padding was there and has already been removed: the torrent delivered 2,312,863,971 bytes (SHA-256 `fbb8c5ad…`, not on Bazaar), and the upload is the first 165,380,323. What is left is a .NET single-file host: a native x64 `apphost` followed by a bundle whose manifest is located by a fixed 32-byte signature. The 8 bytes before that signature hold the manifest's offset. I parsed the manifest with a short script:
+MalwareBazaar tags the upload `padded`, and at 165 MB I expected filler inside it. There isn't any.
+
+I had read only the record's `comment` field, which is empty. The submitter's note is in the separate `comments` list, and it says the padding was there and has already been removed. The torrent delivered 2,312,863,971 bytes (SHA-256 `fbb8c5ad…`, not on Bazaar), and the upload is the first 165,380,323.
+
+What is left is a .NET single-file host: a native x64 `apphost` followed by a bundle whose manifest is located by a fixed 32-byte signature. The 8 bytes before that signature hold the manifest's offset. I parsed the manifest with a short script:
 
 ```console
 $ python -I bundle.py bundle.exe
@@ -40,9 +50,11 @@ deps/rtcfg/flags (165308928, 43262, 10093568, 439, 0)
 0x09da6a00     43262         0 t3 2f9cd25e6b2e6d5c System Process.deps.json
 ```
 
-The columns are offset, size, compressed size (0 means stored), entry type and the first 16 hex digits of the SHA-256. The 468 entries add up to 154,828,109 bytes of a 165,380,323-byte file, and the longest run of zero bytes anywhere in it is 110,459 bytes. The size is the runtime: `runtimeconfig.json` lists both the base .NET runtime and the Windows Desktop runtime, version 8.0.24, so the bundle ships WPF and Windows Forms with their resources in 13 languages. The 2 GB of zeros on top keep the file away from scanners and sandboxes with size limits; the runtime is just what a self-contained .NET 8 app weighs.
+The columns are offset, size, compressed size (0 means stored), entry type and the first 16 hex digits of the SHA-256. The 468 entries add up to 154,828,109 bytes (154.8 MB) of a 165,380,323-byte file, and the longest run of zero bytes anywhere in it is 110,459 bytes.
 
-The app's own files are few: `System Process.dll` (the loader), `Shared.dll`, MessagePack, an LZ4 library, SQLite, `System.Management` and `Microsoft.Win32.TaskScheduler`, which `deps.json` lists but nothing in AgentCore references. The submitter's comments name these parts and point out a 32-character key-like string in the loader. The loader is one class, `Loader.Bootstrap`:
+The size is the runtime: `runtimeconfig.json` lists both the base .NET runtime and the Windows Desktop runtime, version 8.0.24, so the bundle ships WPF and Windows Forms with their resources in 13 languages. The 2 GB of zeros on top keep the file away from scanners and sandboxes with size limits; the runtime is just what a self-contained .NET 8 app weighs.
+
+The app's own files are few: `System Process.dll` (the loader), `Shared.dll`, MessagePack, an LZ4 library, SQLite, `System.Management` and `Microsoft.Win32.TaskScheduler`, which `deps.json` lists but nothing in AgentCore references. The submitter's comments name these parts and point out a 32-character key-like string in the loader. I read the files with dnfile, ILSpy and a few short Python scripts. The loader is one class, `Loader.Bootstrap`:
 
 ```csharp {title="Loader.Bootstrap (System Process.dll), error handling removed"}
 private static readonly string ENCRYPTION_KEY = "eu1fA7JeiTnoipSdSTiKJFxMt8PYtbaq";
@@ -72,7 +84,11 @@ AgentCore references an assembly called `Shared` for its protocol and crypto. Th
 
 ## Two builds, one certificate
 
-The other public build is the hash Threatray listed, `63a9dd2e…`, a 282 KB AgentCore assembly submitted to Bazaar on its own on 2026-10-15. I call it the Threatray build and the one in the bundle the bundle build. I can't say which is older. The bundle build has more features (the UAC bypass, the DevTools stealer, autofill, 48 wallet IDs against 42), but the Threatray build has a reorganized `BrowserManager` class the other lacks, and the vendor first-seen dates on Bazaar disagree: Kaspersky first saw `63a9dd2e` on 2026-03-02, while ReversingLabs reports 2026-02-22 for both the bundle and its loader. The Threatray build's PDB path is `C:\Users\Administrator\Videos\finalfinallnoobsaibot\finallnoobsaibot\finallnoobsaibot\noobsaibot\topworkPnoobsaibot\Pnoobsaibot\noobsaibot\noobsaibot\AgentCore\...`, which tells its own story about how the project was versioned.
+The other public build is the hash Threatray listed, `63a9dd2e…`, a 282 KB AgentCore assembly submitted to Bazaar on its own on 2026-10-15. I call it the Threatray build and the one in the bundle the bundle build.
+
+I can't say which is older. The bundle build has more features (the UAC bypass, the DevTools stealer, autofill, 48 wallet IDs against 42). But the Threatray build has a reorganized `BrowserManager` class the other lacks, and the vendor first-seen dates on Bazaar disagree. Kaspersky first saw `63a9dd2e` on 2026-03-02, while ReversingLabs reports 2026-02-22 for both the bundle and its loader.
+
+The Threatray build's PDB path is `C:\Users\Administrator\Videos\finalfinallnoobsaibot\finallnoobsaibot\finallnoobsaibot\noobsaibot\topworkPnoobsaibot\Pnoobsaibot\noobsaibot\noobsaibot\AgentCore\...`, which tells its own story about how the project was versioned.
 
 Both builds keep their settings in a static class, `AgentConfig`. Five of the values are encoded with `Obfuscator.Deobfuscate`, which is Base64 followed by a repeating XOR with the UTF-8 bytes of `NoobSaibot`:
 
@@ -172,7 +188,11 @@ if (CoGetObject("Elevation:Administrator!new:{3E5FC7F9-9735-4304-8133-F4A6359921
 }
 ```
 
-I took this for a working copy at first, because (1) matches UACME's `IID_ICMLuaUtil` in `comsup.h` byte for byte, and the C# interface declares six placeholder methods before `ShellExec`, which puts it in the right vtable slot (UACME's `elvint.h` has six methods between `Release` and `ShellExec`). Then I checked the CLSID in (2) against UACME's `consts.h`, which defines `T_CLSID_CMSTPLUA` as `{3E5FC7F9-9A51-4367-9063-A120244FBEC7}`. The first eight hex digits match and the rest don't. I found the sample's CLSID in no public source, with the same mixed case (`...F4A6359921b3`) or without it. Unless something on the victim registers that class, `CoGetObject` fails, `Elevate` returns false, and the RAT carries on with the token it started with.
+I took this for a working copy at first, because (1) matches UACME's `IID_ICMLuaUtil` in `comsup.h` byte for byte. The C# interface also declares six placeholder methods before `ShellExec`, which puts it in the right vtable slot (UACME's `elvint.h` has six methods between `Release` and `ShellExec`).
+
+Then I checked the CLSID in (2) against UACME's `consts.h`, which defines `T_CLSID_CMSTPLUA` as `{3E5FC7F9-9A51-4367-9063-A120244FBEC7}`. The first eight hex digits match and the rest don't. I found the sample's CLSID in no public source, with the same mixed case (`...F4A6359921b3`) or without it.
+
+Unless something on the victim registers that class, `CoGetObject` fails, `Elevate` returns false, and the RAT carries on with the token it started with.
 
 That matters for the next step. `AdvancedPersistence.InstallWMIPersistence` creates a permanent WMI event subscription in `root\subscription`:
 
@@ -252,9 +272,18 @@ The HVNC module isn't in either build or in the bundle; the server sends it on d
 
 ## The stealer and the hidden account
 
-`stealdata` collects passwords (Chromium browsers and Firefox), cookies, cards, wallet extensions and desktop wallets, Discord tokens, Telegram sessions, saved Wi-Fi passwords, files with eleven extensions (`.txt`, `.pdf`, `.doc`, `.docx`, `.xls`, `.xlsx`, `.key`, `.kdbx`, `.wallet`, `.dat`, `.json`) in the top level of Documents and Desktop, the keylogger buffer and a screenshot; the bundle build adds Chromium autofill. With `mode=json` it returns everything in the command result. By default it writes a folder under `%TEMP%\stolen_<8 hex>`, zips it to `%TEMP%\stolen_<8 hex>.zip` and returns the path and a wallet count, which the operator then pulls with `download_chunked`. Wallet files are staged under `%TEMP%\noobsaibotRAT_Stealer\Wallets\`.
+`stealdata` collects:
 
-For Chrome's app-bound cookie encryption, `AppBoundDecryptor` is a C# port of the public method from [runassu's chrome_v20_decryption](https://github.com/runassu/chrome_v20_decryption): impersonate SYSTEM with a token taken from `lsass.exe`, DPAPI-decrypt the key as SYSTEM and then as the user, then unwrap it with the hard-coded AES key for flag 1 or the `Google Chromekey1` CNG key and XOR mask for flag 3. It needs administrator rights, which brings us back to the broken elevation.
+- passwords (Chromium browsers and Firefox), cookies and cards;
+- wallet extensions and desktop wallets;
+- Discord tokens and Telegram sessions;
+- saved Wi-Fi passwords;
+- files with eleven extensions (`.txt`, `.pdf`, `.doc`, `.docx`, `.xls`, `.xlsx`, `.key`, `.kdbx`, `.wallet`, `.dat`, `.json`) in the top level of Documents and Desktop;
+- the keylogger buffer and a screenshot.
+
+The bundle build adds Chromium autofill. With `mode=json` it returns everything in the command result. By default it writes a folder under `%TEMP%\stolen_<8 hex>`, zips it to `%TEMP%\stolen_<8 hex>.zip` and returns the path and a wallet count. The operator then pulls the zip with `download_chunked`. Wallet files are staged under `%TEMP%\noobsaibotRAT_Stealer\Wallets\`.
+
+For Chrome's app-bound cookie encryption, `AppBoundDecryptor` is a C# port of the public method from [runassu's chrome_v20_decryption](https://github.com/runassu/chrome_v20_decryption). It impersonates SYSTEM with a token taken from `lsass.exe` and DPAPI-decrypts the key as SYSTEM and then as the user. Then it unwraps the key with the hard-coded AES key for flag 1, or with the `Google Chromekey1` CNG key and XOR mask for flag 3. It needs administrator rights, which brings us back to the broken elevation.
 
 The bundle build adds `ModernBrowserStealer`, which kills the browser, starts it again with `--remote-debugging-port=9222 --user-data-dir="..." --headless=new` and asks the DevTools endpoint for `Network.getAllCookies`. Its password half opens `chrome://password-manager/passwords` and evaluates this, trimmed:
 
@@ -287,9 +316,22 @@ From `stealdata` the user is `Support_` plus five hex digits and the password is
 
 ## Code that was written and never wired in
 
-After seeing modules with no command, I checked which AgentCore classes any other class references. My first pass searched the IL for `Class::Method` tokens and missed constructors, because `.ctor` doesn't match `\w+`, so it also listed `LsassImpersonator` as unused; `AppBoundDecryptor` does create it with `new`. The second pass counts any mention of the type name outside its own class. In the bundle build, eleven classes have none: `SocksModule`, `WebcamModule`, `AudioRecorderModule`, `RegistryModule`, `ShellModule`, `FileManagerModule`, `ProcessManagerModule`, `DiscordStealer`, `AntiAnalysis`, `DesktopApi` and the `HVNCCommand` enum. The protocol's `PacketType` enum has values for Netstat, Webcam, Audio, Registry and Thumbnails that no code sends, and `HandleHVNC` is an empty method. `AntiAnalysis`, a second anti-VM class, is in both builds and called by neither. `SelfDelete` in `AgentEntry` writes a batch file that deletes the executable, and nothing calls it.
+After seeing modules with no command, I checked which AgentCore classes any other class references. My first pass searched the IL for `Class::Method` tokens and missed constructors, because `.ctor` doesn't match `\w+`. So it also listed `LsassImpersonator` as unused; `AppBoundDecryptor` does create it with `new`.
 
-The mix of a class called `EvasionBrain`, an interface called `IEngine` in a `Shared.AI` namespace, `ai_` junk fields, a placeholder comment in shipped JavaScript, four impossible extension IDs and a CLSID that is right for eight digits makes me think, with medium confidence, that much of this code was produced with a code-generation assistant and not tested on a real target. It doesn't make the working parts harmless: the shell, file transfer, keylogger, cookie theft, screen streaming and hidden RDP account all work as written, as far as static reading can tell.
+The second pass counts any mention of the type name outside its own class. In the bundle build, eleven classes have none: `SocksModule`, `WebcamModule`, `AudioRecorderModule`, `RegistryModule`, `ShellModule`, `FileManagerModule`, `ProcessManagerModule`, `DiscordStealer`, `AntiAnalysis`, `DesktopApi` and the `HVNCCommand` enum.
+
+The protocol's `PacketType` enum has values for Netstat, Webcam, Audio, Registry and Thumbnails that no code sends, and `HandleHVNC` is an empty method. `AntiAnalysis`, a second anti-VM class, is in both builds and called by neither. `SelfDelete` in `AgentEntry` writes a batch file that deletes the executable, and nothing calls it.
+
+I think, with medium confidence, that much of this code was produced with a code-generation assistant and not tested on a real target. What makes me think so is the mix of:
+
+- a class called `EvasionBrain`;
+- an interface called `IEngine` in a `Shared.AI` namespace;
+- `ai_` junk fields;
+- a placeholder comment in shipped JavaScript;
+- four impossible extension IDs;
+- a CLSID that is right for eight digits.
+
+It doesn't make the working parts harmless: the shell, file transfer, keylogger, cookie theft, screen streaming and hidden RDP account all work as written.
 
 ## What I couldn't determine
 
@@ -300,7 +342,9 @@ The mix of a class called `EvasionBrain`, an interface called `IEngine` in a `Sh
 
 ## The extractor
 
-[`families/noobsaibot/extract.py`](https://github.com/stateless-re/tools/tree/main/families/noobsaibot) takes a single-file bundle, the loader assembly or an AgentCore assembly. It parses the bundle manifest, finds the loader's AES key by trying each user string against the resource until the result starts with `MZ`, walks the IL of `AgentConfig`'s static constructor, and decodes the `Obfuscator` strings with the key it finds in `Obfuscator.Deobfuscate`. The output is JSON: config, encoded originals, junk fields, PDB path and the hashes of the app's files in the bundle. `-o DIR` writes the decrypted AgentCore assembly.
+[`families/noobsaibot/extract.py`](https://github.com/stateless-re/tools/tree/main/families/noobsaibot) takes a single-file bundle, the loader assembly or an AgentCore assembly. It parses the bundle manifest and finds the loader's AES key by trying each user string against the resource until the result starts with `MZ`. Then it walks the IL of `AgentConfig`'s static constructor and decodes the `Obfuscator` strings with the key it finds in `Obfuscator.Deobfuscate`.
+
+The output is JSON: config, encoded originals, junk fields, PDB path and the hashes of the app's files in the bundle. `-o DIR` writes the decrypted AgentCore assembly.
 
 ## Indicators
 

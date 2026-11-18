@@ -719,6 +719,36 @@ main { padding-bottom: clamp(4rem, 10vw, 7rem); }
 .prose figure { margin-inline: 0; }
 .prose figcaption { font-size: .95rem; color: var(--soft); margin-top: .5rem; }
 
+/* figures: diagrams and graphs drawn by the skill's figure scripts are
+   inlined SVG, so they take the theme's colours and fonts from here; the
+   fill/stroke attributes in the files are only the light fallback.
+   Wide ones (a CFG) keep a minimum width and scroll inside the column. */
+.prose .figure { margin-block: 2rem; }
+.prose .figure img { display: block; border-radius: 6px; }
+.prose .fig-wrap { overflow-x: auto; }
+.prose .fig-wrap svg { display: block; width: 100%; height: auto; margin-inline: auto; } /* max-width = natural size, set by the script */
+.fig text { font-family: var(--sans); fill: var(--ink); }
+.fig .mono, .fig .mono text { font-family: var(--mono); }
+.fig .fig-bg { fill: var(--panel); }
+.fig .fig-box { fill: var(--paper); stroke: var(--rule); }
+.fig .fig-hot { fill: var(--paper); stroke: var(--syn-fn); }
+.fig .fig-soft, .fig text.fig-soft { fill: var(--soft); }
+.fig .fig-dim, .fig text.fig-dim { fill: var(--dim); }
+.fig .fig-line { stroke: var(--soft); fill: none; }
+.fig .fig-rule { stroke: var(--rule); fill: none; }
+.fig .fig-head { fill: var(--soft); }
+.fig .fig-mark { fill: var(--mark); }
+.fig text.fig-mark-ink { fill: var(--mark-ink); }
+.fig .fig-c1 { fill: var(--syn-fn); stroke: var(--syn-fn); }
+.fig .fig-c2 { fill: var(--syn-str); stroke: var(--syn-str); }
+.fig .fig-c3 { fill: var(--syn-num); stroke: var(--syn-num); }
+.fig .fig-c4 { fill: var(--syn-kw); stroke: var(--syn-kw); }
+.fig .fig-c5 { fill: var(--syn-type); stroke: var(--syn-type); }
+.fig .fig-c6 { fill: var(--syn-pre); stroke: var(--syn-pre); }
+.fig .fig-ok { stroke: var(--syn-str); }
+.fig .fig-no { stroke: var(--syn-pre); }
+.fig .fig-tint { fill-opacity: .16; stroke-opacity: 1; }
+
 /* tables: a header band in the code panel's colour, rows you can follow
    with the pointer, and code set to the same visual size as the text */
 .prose .table-wrap {

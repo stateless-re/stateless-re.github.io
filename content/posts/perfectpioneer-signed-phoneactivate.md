@@ -2,7 +2,7 @@
 title: "PerfectPioneer's phoneactivate.exe is unmodified Microsoft code with the RAT in its signature"
 date: 2026-11-17T20:18:17+00:00
 slug: "perfectpioneer-signed-phoneactivate"
-description: "Unit 42's PerfectPioneer report describes side-loading through a modified host binary with XOR-encrypted shellcode. The rat_http3_cc host on Hybrid Analysis has an intact Microsoft signature and carries the Go RAT, unencrypted, after the PKCS#7 blob in its certificate table. A Go installer drops it with a proxy SLC.dll and starts it through the Help Pane COM server. Six loader builds, the container, the stub, the agent's login and a C2 map across seventeen Go programs."
+description: "Unit 42's rat_http3_cc host is Microsoft's phoneactivate.exe with a valid signature and the Go RAT appended, unencrypted, inside its certificate table."
 tags: ["perfectpioneer", "tgr-sta-0049", "golang", "dll-sideloading", "authenticode", "http3"]
 sample:
   family: "PerfectPioneer RAT (rat_http3_cc)"
@@ -11,15 +11,20 @@ sample:
 toc: true
 ---
 
-The `phoneactivate.exe` that delivers PerfectPioneer's rat_http3_cc variant is Microsoft's own Phone Activation UI, version 10.0.26100.1150, with its Authenticode digest still matching. The RAT sits behind the signature: 7,302,889 bytes appended after the PKCS#7 blob inside the certificate table, introduced by the marker `INJECT_01` and the name `code.bin`, unencrypted. A proxy `SLC.dll` placed next to it reads those bytes back from disk at a hard-coded offset and jumps into them. A 4,841-byte stub maps the Go agent that follows, and the agent logs in to `hxxps://ads-edge[.]com:36897` with a username and password compiled into `main.main`.
+The `phoneactivate.exe` that delivers PerfectPioneer's rat_http3_cc variant is Microsoft's own Phone Activation UI, version 10.0.26100.1150, with its Authenticode digest still matching. The RAT sits behind the signature: 7,302,889 bytes appended after the PKCS#7 blob inside the certificate table, introduced by the marker `INJECT_01` and the name `code.bin`, unencrypted.
 
-Unit 42 described PerfectPioneer and its successor KUKURAT on 2026-11-16 in [QUIC and Covert](https://unit42.paloaltonetworks.com/custom-rats-target-southeast-asia-governments/), attributing both to the cluster it tracks as TGR-STA-0049. The report covers the RAT's commands, its HTTP/3 transport and the `isDangerousCommand` filter in detail, and gives side-loading one paragraph: a legitimate executable "structurally modified to contain XOR-encrypted shellcode", and a loader DLL beside it. I pulled the rat_http3_cc files from its indicator list that Hybrid Analysis has, then the loader DLLs and the other agents: 24 files from Hybrid Analysis and one I carved out of them, to see what that paragraph covers.
+A proxy `SLC.dll` placed next to it reads those bytes back from disk at a hard-coded offset and jumps into them. A 4,841-byte stub maps the Go agent that follows, and the agent logs in to `hxxps://ads-edge[.]com:36897` with a username and password compiled into `main.main`.
+
+Unit 42 described PerfectPioneer and its successor KUKURAT on 2026-11-16 in [QUIC and Covert](https://unit42.paloaltonetworks.com/custom-rats-target-southeast-asia-governments/), attributing both to the cluster it tracks as TGR-STA-0049. The report covers the RAT's commands, its HTTP/3 transport and the `isDangerousCommand` filter in detail. It gives side-loading one paragraph: a legitimate executable "structurally modified to contain XOR-encrypted shellcode", and a loader DLL beside it.
+
+To see what that paragraph covers, I pulled the rat_http3_cc files from its indicator list that Hybrid Analysis has, then the loader DLLs and the other agents. That makes 24 files from Hybrid Analysis and one I carved out of them.
 
 ## What I found
 
-- Four entries filed under different headings in the report are one chain. The "modified host binary" `d700b573` is a Go installer that embeds the loader `2e52b293` (a proxy for `SLC.dll`) and the signed `phoneactivate.exe` `52d3442f`, and the agent inside that `phoneactivate.exe` is the "core agent" `183abf82`. A second "core agent", `fb5b0b1d`, is another build of the installer.
-- In this October chain nothing is XOR-encrypted, and the host `52d3442f` is byte for byte what Microsoft signed apart from the appended payload. The loader opens `phoneactivate.exe` as a file, reads 0x6f6ee9 bytes from offset 0x20a65 into RWX memory and calls the first byte. XOR with `0xAA` appears in the loader builds from 24 October on, and a March 2026 build switches to `0xED`.
-- Six loader builds from the indicator list, compiled between 2025-10-14 and 2026-03-09, proxy three different system DLLs and drop the Run-key code after October. The 32-bit `vrfcore.dll` the report lists as the rat_http3_cc loader reads an offset that lands in the resources of the `phoneactivate.exe` copies listed beside it, so it belongs to a different host file.
+- Four entries filed under different headings in the report are one chain: the Go installer `d700b573`, the proxy `SLC.dll` it drops, the signed `phoneactivate.exe`, and the agent inside it.
+- In this October chain nothing is XOR-encrypted, and the host `52d3442f` is byte for byte what Microsoft signed apart from the appended payload.
+- Six loader builds, compiled between 2025-10-14 and 2026-03-09, proxy three different system DLLs. XOR with `0xAA` appears from 24 October on, and a March 2026 build switches to `0xED`.
+- The 32-bit `vrfcore.dll` the report lists as the rat_http3_cc loader reads an offset that lands in the resources of the listed `phoneactivate.exe` copies, so it belongs to a different host file.
 - The agent authenticates to `/auth/login` as `dhsfhakhaskjyuiashfhasjkdfhjkh` with password `askjdfklsagklhkhzokhfd` and turns off certificate verification. The Pioneer build `8bf94019` carries the same URL and the same credentials.
 - Sixteen of the 17 Go programs carry exactly one C2 URL, each with a fixed port, and the builds of each HTTP/3 variant agree. The earliest RatAAkk-tt build points at `192.168.26[.]10:56893`, a private address.
 
@@ -42,7 +47,9 @@ I started with the "rat_http3_cc modified host binary" entries, expecting patche
 0x48b933: call 0x4798a0 ; os.WriteFile
 ```
 
-The bytes behind (1) and (2) are in the installer's `.rdata` at file offsets 0xcfa20 and 0xae820. Carved out, they hash to `52d3442f`, the signed `phoneactivate.exe` from the same indicator section, and `2e52b293`, a DLL the report files under "loader DLL components". Hybrid Analysis received the installer and that DLL 67 seconds apart, at 16:19:55 and 16:21:02 UTC on 2025-10-29. The other "core agent" with the same project path, `fb5b0b1d`, is a second build of the installer with the same four functions, and it carries the same DLL plus the second `phoneactivate.exe` copy, `904409ce`.
+The bytes behind (1) and (2) are in the installer's `.rdata` at file offsets 0xcfa20 and 0xae820. Carved out, they hash to `52d3442f`, the signed `phoneactivate.exe` from the same indicator section, and `2e52b293`, a DLL the report files under "loader DLL components". Hybrid Analysis received the installer and that DLL 67 seconds apart, at 16:19:55 and 16:21:02 UTC on 2025-10-29.
+
+The other "core agent" with the same project path, `fb5b0b1d`, is a second build of the installer with the same four functions. It carries the same DLL plus the second `phoneactivate.exe` copy, `904409ce`.
 
 While the files are written, the installer shows a window of class `InstallerClass` titled "Authorization component", with "Setup will install the software on your computer", an Install and a Close button, and "Preparing..." and "Installing..." states. `runExtractedProgram` then hands `file://` plus the path of the dropped `phoneactivate.exe` to `executeViaCOM`:
 
@@ -96,13 +103,21 @@ $ re-py -I authenticode.py 52d3442f 904409ce
   digest match False 87e061b0bf1a0ed462408fab2c8ea15e492104e4a73d17bc5ba12572fff6f7b2
 ```
 
-`52d3442f` is Microsoft's file with data appended inside the certificate table, which the Authenticode hash skips, so the digest still matches. `904409ce` has the `fothk` section and `.data` zeroed (all but the last 32 `CC` bytes of `fothk`) and the same 7.3 MB payload. Its `.text` is identical and the loader reads the payload by file offset, so the zeroing changes nothing in the chain; I don't know why that copy exists. The file that does come from memory is a different one: the "core agent" `619b749e` has every section's file offset equal to its virtual address and `.data` at its full virtual size, and it differs from `183abf82` only in `.data` (6,307 bytes), one `.symtab` byte and 22 header bytes.
+`52d3442f` is Microsoft's file with data appended inside the certificate table, which the Authenticode hash skips, so the digest still matches.
+
+`904409ce` has the `fothk` section and `.data` zeroed (all but the last 32 `CC` bytes of `fothk`) and the same 7.3 MB payload. Its `.text` is identical and the loader reads the payload by file offset, so the zeroing changes nothing in the chain; I don't know why that copy exists.
+
+The file that does come from memory is a different one. The "core agent" `619b749e` has every section's file offset equal to its virtual address and `.data` at its full virtual size. It differs from `183abf82` only in `.data` (6,307 bytes), one `.symtab` byte and 22 header bytes.
 
 Appending data after the signature is old ([CVE-2013-3900](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2013-3900)). Microsoft's fix, `EnableCertPaddingCheck`, is opt-in and makes `WinVerifyTrust` reject extra data after the signature. Without it, a scanner that trusts Microsoft-signed files sees a Microsoft-signed file.
 
 ## The proxy SLC.dll reads the payload as a file
 
-`phoneactivate.exe` imports nine functions from `SLC.dll`, the Software Licensing Client. `2e52b293` exports the same nine names, so the planted copy beside the executable satisfies the import. Its PDB path is `D:\2022pro\Dll1\x64\Release\MFSENSORGROUP.pdb` and its export directory still calls it `MFSENSORGROUP.dll`. I think the project started as a proxy for that DLL and was renamed in the export table only. Eight exports are `ret 0`. `SLOpen` jumps to the loader:
+`phoneactivate.exe` imports nine functions from `SLC.dll`, the Software Licensing Client. `2e52b293` exports the same nine names, so the planted copy beside the executable satisfies the import.
+
+Its PDB path is `D:\2022pro\Dll1\x64\Release\MFSENSORGROUP.pdb` and its export directory still calls it `MFSENSORGROUP.dll`. I think the project started as a proxy for that DLL and was renamed in the export table only.
+
+Eight exports are `ret 0`. `SLOpen` jumps to the loader:
 
 ```c {title="SLOpen -> 0x180001070 (2e52b293), from Ghidra, error paths trimmed, names mine"}
 GetModuleFileNameA(NULL, self, 0x104);
@@ -133,7 +148,9 @@ The code at 0x20a65 is position-independent x64. It finds kernel32 by walking th
 0x027a: sub eax, 0x10
 ```
 
-The three names are `GetProcAddress`, `LoadLibraryA` and `VirtualAlloc`. To find itself, the stub writes the nine bytes `E8 00 00 00 00 58 58 50 C3` into a fresh RWX page and calls it: `call $+5`, pop that return address, pop the caller's return address, push it back, return. The page returns its caller's address in `rax`. From there the stub scans forward up to 0x9c4000 bytes for `4D 5A 90 00 03 00`, which it finds 4,841 bytes from its start, and maps that PE: `VirtualAlloc` at the preferred image base (falling back to any address), headers, sections, imports through `LoadLibraryA` and `GetProcAddress`, and finally a call to `AddressOfEntryPoint` with no arguments.
+The three names are `GetProcAddress`, `LoadLibraryA` and `VirtualAlloc`. To find itself, the stub writes the nine bytes `E8 00 00 00 00 58 58 50 C3` into a fresh RWX page and calls it: `call $+5`, pop that return address, pop the caller's return address, push it back, return. The page returns its caller's address in `rax`.
+
+From there the stub scans forward up to 0x9c4000 bytes for `4D 5A 90 00 03 00`, which it finds 4,841 bytes from its start. It maps that PE: `VirtualAlloc` at the preferred image base (falling back to any address), headers, sections, and imports through `LoadLibraryA` and `GetProcAddress`. Finally it calls `AddressOfEntryPoint` with no arguments.
 
 The relocation pass runs only when the preferred base was taken, and it applies every entry as a 64-bit fixup without looking at the type bits. For a Go PE with base 0x400000 inside a process based at 0x140000000 that path should rarely run, and I didn't check whether it would corrupt anything.
 
@@ -155,11 +172,19 @@ The agent's configuration is three string literals passed to `agent.NewClient`:
 0x74d240: call 0x7445a0 ; pioneer/internal/agent.NewClient
 ```
 
-Go's register ABI passes each string as a pointer and a length, so the three pairs are the URL (0x1a bytes), (1) at 0x1e bytes and (2) at 0x16 bytes. `NewClient` stores (1) at client offset 0x60 and (2) at 0x70. `authenticate` copies those two fields into a struct whose type metadata reads `Username json:"username"`, `Password json:"password"` and `ClientType json:"client_type"`, sets the third to `agent`, wraps it with message type `auth` and POSTs it to `/auth/login`. The reply must contain a `token`, which goes into an `Authorization: Bearer` header for `/agent/register` and everything after. The module path is `pioneer`, and its `internal/agent` package holds `register`, `sendHeartbeat`, `pollForCommands`, the file and shell handlers and `isDangerousCommand`.
+Go's register ABI passes each string as a pointer and a length, so the three pairs are the URL (0x1a bytes), (1) at 0x1e bytes and (2) at 0x16 bytes. `NewClient` stores (1) at client offset 0x60 and (2) at 0x70.
+
+`authenticate` copies those two fields into a struct whose type metadata reads `Username json:"username"`, `Password json:"password"` and `ClientType json:"client_type"`. It sets the third to `agent`, wraps the struct with message type `auth` and POSTs it to `/auth/login`. The reply must contain a `token`, which goes into an `Authorization: Bearer` header for `/agent/register` and everything after.
+
+The module path is `pioneer`, and its `internal/agent` package holds `register`, `sendHeartbeat`, `pollForCommands`, the file and shell handlers and `isDangerousCommand`.
 
 `NewClient` also allocates a `tls.Config`, sets the byte at offset 0xa0, which the type's field table names `InsecureSkipVerify`, and sets `NextProtos` to `h3`, `h2` and `http/1.1`. The agent accepts any certificate.
 
-Unit 42 already documented the local HTTP server on port 56793 (its `/health` handler returns `{"health":"ok","timestamp":...}`, and the listener binds `:56793`, all interfaces) and the agent's persistence. One detail changes in this chain. `setupPersistence` sleeps five seconds (0x12a05f200 ns), then writes `WindowsUpdate.lnk` into the Startup folder pointing at `os.Executable()`. Since the agent was mapped into `phoneactivate.exe`, that is the path of the signed Microsoft binary. The rat_http3_cc agent has no Run-key string at all. The `WindowsSecurityUpdate` Run value comes from the loader DLL, and it also points at `phoneactivate.exe`. The newhttp3 agents do contain the `CurrentVersion\Run` path themselves.
+Unit 42 already documented the local HTTP server on port 56793 and the agent's persistence. The server's `/health` handler returns `{"health":"ok","timestamp":...}`, and its listener binds `:56793`, all interfaces.
+
+One detail changes in this chain. `setupPersistence` sleeps five seconds (0x12a05f200 ns), then writes `WindowsUpdate.lnk` into the Startup folder pointing at `os.Executable()`. Since the agent was mapped into `phoneactivate.exe`, that is the path of the signed Microsoft binary.
+
+The rat_http3_cc agent has no Run-key string at all. The `WindowsSecurityUpdate` Run value comes from the loader DLL, and it also points at `phoneactivate.exe`. The newhttp3 agents do contain the `CurrentVersion\Run` path themselves.
 
 ## Six loader builds, October to March
 
@@ -174,15 +199,24 @@ The report lists fourteen loader DLLs: twelve "loader DLL components" and one "l
 | `24c46bc9` | 2025-12-02 | WTSAPI32.dll | `WTSRegisterSessionNotification` | its own executable | 0xf5bb8 | 0x76a4e9 | 0xAA |
 | `f82c0618` | 2026-03-09 | WTSAPI32.dll | `WTSRegisterSessionNotification` | its own executable | 0xf5bb8 | 0xabd6e9 | 0xED |
 
-The three October builds write the `WindowsSecurityUpdate` Run value, and the later three don't import the registry API at all. The x64 `vrfcore.dll` and the December `WTSAPI32.dll` also hide the console window first. From November on the loader stops building a file name: it opens the path from `GetModuleFileNameA` unchanged, meaning the executable it was loaded into. The XOR runs over the whole buffer. In October it is a byte loop; from November the compiler unrolled it to 64 bytes per iteration with a 16-byte constant (`AA` repeated, or `ED` repeated in March) and a byte loop for the last 0x29 bytes. The March build also guards its trigger export with a run-once flag; the earlier ones are a bare `jmp`.
+The builds also differ in code the table doesn't show:
+
+- The three October builds write the `WindowsSecurityUpdate` Run value, and the later three don't import the registry API at all.
+- The x64 `vrfcore.dll` and the December `WTSAPI32.dll` hide the console window first.
+- From November on the loader stops building a file name. It opens the path from `GetModuleFileNameA` unchanged, meaning the executable it was loaded into.
+- The March build guards its trigger export with a run-once flag; the earlier ones are a bare `jmp`.
+
+The XOR runs over the whole buffer. In October it is a byte loop. From November the compiler unrolled it to 64 bytes per iteration with a 16-byte constant (`AA` repeated, or `ED` repeated in March), plus a byte loop for the last 0x29 bytes.
 
 The November build reads from 0x20a38, where `INJECT_01` starts in this `phoneactivate.exe` build (after the PKCS#7 blob and three bytes of padding), and executes from there, so its host has no 0x2d-byte header in front of the code. I think it used the same Microsoft file with an encrypted payload in the same place, but I don't have that host.
 
-The 32-bit `vrfcore.dll`, `8cfe629f`, is the one the report files as the "rat_http3_cc loader DLL". I first argued it couldn't work because the listed `phoneactivate.exe` copies are 64-bit, which misses the point: `phoneactivate.exe` doesn't import `vrfcore.dll`, so this DLL is loaded by some 32-bit program that does and only reads `phoneactivate.exe` as data. What rules out the listed copies is the offset. In them 0x1bbe5 lands in the XML of the `.rsrc` section, so this loader pairs with a different `phoneactivate.exe` holding a 1.1 MB x86 payload at that offset, which I didn't find among the report's hashes on Hybrid Analysis.
+The 32-bit `vrfcore.dll`, `8cfe629f`, is the one the report files as the "rat_http3_cc loader DLL". I first argued it couldn't work because the listed `phoneactivate.exe` copies are 64-bit. That misses the point: `phoneactivate.exe` doesn't import `vrfcore.dll`, so this DLL is loaded by some 32-bit program that does and only reads `phoneactivate.exe` as data.
+
+What rules out the listed copies is the offset. In them 0x1bbe5 lands in the XML of the `.rsrc` section. So this loader pairs with a different `phoneactivate.exe` holding a 1.1 MB x86 payload at that offset, which I didn't find among the report's hashes on Hybrid Analysis.
 
 ## One host, one port per variant
 
-Unit 42 lists the C2 domains without saying which build uses which. Reading the other agents fills that in. For the rat_http3_cc and Pioneer builds the values below come from the `NewClient` call site; for the others they are the only URL strings with an explicit port in the binary, which I didn't trace to the code that uses them:
+Unit 42 lists the C2 domains without saying which build uses which. Reading the other agents fills that in. For the rat_http3_cc and Pioneer builds, the values below come from the `NewClient` call site. For the others they are the only URL strings with an explicit port in the binary, which I didn't trace to the code that uses them:
 
 | Variant | Files | C2 |
 |---|---|---|
@@ -195,15 +229,28 @@ Unit 42 lists the C2 domains without saying which build uses which. Reading the 
 | rat_http3_cc | `183abf82`, `619b749e`, both installers | `hxxps://ads-edge[.]com:36897` |
 | newhttp3 | 6 agents | `hxxps://www.wkuyda[.]com:56123` |
 
-`d725ad8b`, the earliest submission among the files I have (Hybrid Analysis, 2025-08-10), talks to a private address. I read it as a build from the author's own network that left before its URL was changed, and the same project's later file uses `thailisting[.]net` on the same port. The Pioneer build shares the rat_http3_cc server, port and credentials, which fits the report's description of rat_http3_cc as a continuation of Pioneer. One more file, `c4b46477`, has neither a project path nor a URL string. Seqrite already covered it: it is `HolidayNotice.pdf.exe` from the April 2026 campaign in their QUICSILVER report, which gets its C2 through Cloudflare Workers. I found no `workers[.]dev` string in it in plain text and didn't look further.
+`d725ad8b`, the earliest submission among the files I have (Hybrid Analysis, 2025-08-10), talks to a private address. I read it as a build from the author's own network that left before its URL was changed. The same project's later file uses `thailisting[.]net` on the same port.
+
+The Pioneer build shares the rat_http3_cc server, port and credentials, which fits the report's description of rat_http3_cc as a continuation of Pioneer.
+
+One more file, `c4b46477`, has neither a project path nor a URL string. Seqrite already covered it: it is `HolidayNotice.pdf.exe` from the April 2026 campaign in their QUICSILVER report, which gets its C2 through Cloudflare Workers. I found no `workers[.]dev` string in it in plain text and didn't look further.
 
 ## What I couldn't determine
 
-I don't have a host for five of the six loaders: the 32-bit `phoneactivate.exe` for `8cfe629f`, the `appverif.exe` for `9dfefc71`, and the executables the three later builds read themselves from. They are probably the "modified host binary" hashes the report lists that Hybrid Analysis doesn't serve (`5f857ff7`, `b975f593`, `b5bea4d8`, `77455239`), but I can't check. Two other loaders, `61f7e2f4` and `0c49e1b9`, failed to download. The six newhttp3, RatAAkk-tt and PerfectRat agents pull in AES and other code that I didn't trace, so their table rows are strings, not decoded configurations. KUKURAT is out of scope here.
+I don't have a host for five of the six loaders: the 32-bit `phoneactivate.exe` for `8cfe629f`, the `appverif.exe` for `9dfefc71`, and the executables the three later builds read themselves from. They are probably the "modified host binary" hashes the report lists that Hybrid Analysis doesn't serve (`5f857ff7`, `b975f593`, `b5bea4d8`, `77455239`), but I can't check.
+
+Two other loaders, `61f7e2f4` and `0c49e1b9`, failed to download. The six newhttp3, RatAAkk-tt and PerfectRat agents pull in AES and other code that I didn't trace, so their table rows are strings, not decoded configurations. KUKURAT is out of scope here.
 
 ## The extractor
 
-[`families/perfectpioneer`](https://github.com/stateless-re/tools/tree/main/families/perfectpioneer) in my tools repository takes any file from this chain and prints JSON: the installer's embedded files, a loader's host name, offset, size, key, trigger export and Run value, a host's container (marker, name, size, XOR key, stub strings) and whether its signature digest still matches, and an agent's `NewClient` URL and credentials or its URL strings. With `-o DIR` it writes the carved PEs, named by SHA-256. I ran it on all 25 files in this post; it reproduces every value in the tables above.
+[`families/perfectpioneer`](https://github.com/stateless-re/tools/tree/main/families/perfectpioneer) in my tools repository takes any file from this chain and prints JSON:
+
+- the installer's embedded files;
+- a loader's host name, offset, size, key, trigger export and Run value;
+- a host's container (marker, name, size, XOR key, stub strings) and whether its signature digest still matches;
+- an agent's `NewClient` URL and credentials, or its URL strings.
+
+With `-o DIR` it writes the carved PEs, named by SHA-256. I ran it on all 25 files in this post; it reproduces every value in the tables above.
 
 ## Indicators
 

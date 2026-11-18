@@ -1,0 +1,24 @@
+{{- /* Standalone images become figures. A local .svg made by the figure
+       scripts is inlined so it can use the theme's colours and fonts and
+       follow the light/dark toggle; anything else is a plain <img>. */ -}}
+{{- $src := .Destination -}}
+{{- $alt := .PlainText -}}
+{{- $local := and (strings.HasPrefix $src "/") (not (strings.HasPrefix $src "//")) -}}
+{{- $inline := "" -}}
+{{- if and $local (strings.HasSuffix $src ".svg") (fileExists (printf "static%s" $src)) -}}
+  {{- $svg := readFile (printf "static%s" $src) -}}
+  {{- if strings.Contains $svg "class=\"fig" -}}
+    {{- $svg = replaceRE `(?s)\A.*?(<svg\b)` "$1" $svg -}}
+    {{- $inline = replace $svg "<svg " (printf "<svg role=\"img\" aria-label=\"%s\" " ($alt | htmlEscape)) 1 -}}
+  {{- end -}}
+{{- end -}}
+{{- if .IsBlock -}}
+<figure class="figure">
+  {{- if $inline }}<div class="fig-wrap">{{ $inline | safeHTML }}</div>
+  {{- else }}<img src="{{ $src }}" alt="{{ $alt }}" loading="lazy" decoding="async">
+  {{- end }}
+  {{- with .Title }}<figcaption>{{ . | markdownify }}</figcaption>{{ end }}
+</figure>
+{{- else -}}
+<img src="{{ $src }}" alt="{{ $alt }}"{{ with .Title }} title="{{ . }}"{{ end }} loading="lazy" decoding="async">
+{{- end -}}

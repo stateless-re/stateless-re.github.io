@@ -2,7 +2,7 @@
 title: "The NIKKE launcher's k2f agent decrypts the saved login with a key made from the MAC address"
 date: 2026-11-14T12:58:51+00:00
 slug: "k2f-nikke-launcher-bundle"
-description: "The LuaJIT bundle delivered through the NIKKE PC launcher, read from its bytecode: the Prometheus parameters behind its string table and a decoder that reads them from the bytecode instead of hard-coding them, the TEA cipher and MAC-derived key that creds uses on the launcher's saved login, a launcher popup moved off-screen, the k2f_chan protocol field by field, and the 37 token detectors in keyscan."
+description: "The k2f agent delivered through the NIKKE PC launcher decrypts the launcher's saved login with a 16-round TEA keyed by an MD5 of the MAC address."
 tags: ["k2f", "luajit", "lua", "prometheus", "credential-theft", "supply-chain", "windows"]
 sample:
   family: "k2f agent (LuaJIT bundle)"
@@ -11,22 +11,34 @@ sample:
 toc: true
 ---
 
-The `creds` command of the k2f agent decrypts the NIKKE launcher's saved login with a 16-round TEA, and the key is the first 16 hex characters of MD5 over a network adapter's MAC address. That is one of a handful of things the agent's bytecode shows that the published accounts don't. The others are how its strings are hidden (Prometheus's constant array, with parameters that change on every build), a launcher popup it moves off-screen, its request protocol down to the field names and error codes, and the 37 token detectors in its secret scanner.
+The `creds` command of the k2f agent decrypts the NIKKE launcher's saved login with a 16-round TEA. The key is the first 16 hex characters of MD5 over a network adapter's MAC address. That is one of a handful of things the agent's bytecode shows that the published accounts don't.
 
-The agent reached NIKKE PC launcher users as a 205,135-byte file of stripped LuaJIT bytecode saved under the launcher's log folder. Bitdefender [published the campaign](https://www.bitdefender.com/en-us/blog/labs/nikke-game-launcher-malware) on November 12 (Florin Cristian Cocolas and Janos Gergo Szeles): delivery through the launcher's task channel, the `k2f_chan` registration, the command list, and exfiltration through the launcher's telemetry. The most complete account is community work. [MotherSphere's write-up](https://gist.github.com/MotherSphere/d6c049a09ba8ac3085c51ee9df24a4e5), first posted November 3 and updated since, covers the tampered launcher JavaScript, the five request types the agent answers, the server-side decryption of browser data, the Chrome persistence DLL, the target paths and the timeline. [WormW](https://github.com/WormW/nikke_malware_analysis) published the bytecode format and two string-table decoders, and [whykusanagi](https://github.com/whykusanagi/nikke_malware) a checker and removal kit. The bundle isn't on MalwareBazaar; Hybrid Analysis has the file (submitted November 5) with no sandbox report. I read it with my own dump parser and disassembler, the [ljd](https://github.com/Aussiemon/ljd) decompiler, and Python. The [decoder](https://github.com/stateless-re/tools/tree/main/families/k2f) is in the tools repo.
+The others are how its strings are hidden (Prometheus's constant array, with parameters that change on every build) and a launcher popup it moves off-screen. The bytecode also gives its request protocol down to the field names and error codes, and the 37 token detectors in its secret scanner.
+
+The agent reached NIKKE PC launcher users as a 205,135-byte file of stripped LuaJIT bytecode saved under the launcher's log folder. The bundle isn't on MalwareBazaar; Hybrid Analysis has the file (submitted November 5) with no sandbox report.
+
+Four sources cover the campaign. The most complete account is community work, MotherSphere's in particular:
+
+- Bitdefender [published the campaign](https://www.bitdefender.com/en-us/blog/labs/nikke-game-launcher-malware) on November 12 (Florin Cristian Cocolas and Janos Gergo Szeles): delivery through the launcher's task channel, the `k2f_chan` registration, the command list, and exfiltration through the launcher's telemetry.
+- [MotherSphere's write-up](https://gist.github.com/MotherSphere/d6c049a09ba8ac3085c51ee9df24a4e5), first posted November 3 and updated since: the tampered launcher JavaScript, the five request types the agent answers, the server-side decryption of browser data, the Chrome persistence DLL, the target paths and the timeline.
+- [WormW](https://github.com/WormW/nikke_malware_analysis) published the bytecode format and two string-table decoders.
+- [whykusanagi](https://github.com/whykusanagi/nikke_malware) published a checker and removal kit.
 
 ## What I found
 
-- The string table is Prometheus's ConstantArray step, strings only, with its default mixed encoding: 1,790 strings rotated by three reversals, each one base64 or base85 with a shuffled alphabet chosen by its first character, read through `T[i - 46736]`. Prometheus draws every one of those values at random on each run (unless a fixed seed is set), so a decoder that hard-codes them works on this build only.
+- The string table is Prometheus's ConstantArray step, read through `T[i - 46736]`. Its parameters change on every build, so a decoder that hard-codes them works on this build only.
 - `creds` reads `psd.dat` from `%APPDATA%\nikke_launcher`, keys a 16-round TEA in Tencent's padded block format with `MD5(MAC)[:16]`, and decrypts the account's password the same way.
 - Unless the launcher defines its own layout for `download_tips_view`, `channel` supplies one that moves the window to (-32000, -32000) and shrinks it to 1×1 pixels.
 - `k2f_chan` takes five operations with numbered sessions, a 2 MiB default read size, and the error codes `EOP`, `EOPEN`, `EBADSID` and `EIO`; commands run either buffered on first read or as streams.
-- `keyscan.detect` holds 37 prefix-and-run detectors, mostly for API tokens (cloud, source hosting, package registries, payments, messaging, and seven for AI and model-hosting services) plus three hand-written ones. The bundle contains no AES; the App-Bound key leaves as its parts.
+- `keyscan.detect` holds 37 prefix-and-run detectors, mostly for API tokens (cloud, source hosting, package registries, payments, messaging, and seven for AI and model-hosting services) plus three hand-written ones.
+- The bundle contains no AES; the App-Bound key leaves as its parts.
 
 
 ## The strings are Prometheus, in LuaJIT 2.0 bytecode
 
-The file starts with `1B 4C 4A 01 02`: the LuaJIT magic, dump version 1, and flags `0x02` (stripped, no debug info). Version 1 is the 2.0 format; the 2.1 branch moved to version 2 in [February 2013](https://github.com/LuaJIT/LuaJIT/commit/73ef845f), and its reader rejects any other version. Bitdefender calls the bundle LuaJIT 2.1 bytecode; WormW and MotherSphere both have it as 2.0, and the bundle agrees: `payload_cleanup` refuses to delete any file whose first four bytes aren't `\27LJ\1`. Parsed with the 2.0 opcode table, the dump splits into 339 function prototypes and ends on its last byte.
+The file starts with `1B 4C 4A 01 02`: the LuaJIT magic, dump version 1, and flags `0x02` (stripped, no debug info). Version 1 is the 2.0 format; the 2.1 branch moved to version 2 in [February 2013](https://github.com/LuaJIT/LuaJIT/commit/73ef845f), and its reader rejects any other version.
+
+Bitdefender calls the bundle LuaJIT 2.1 bytecode; WormW and MotherSphere both have it as 2.0, and the bundle agrees: `payload_cleanup` refuses to delete any file whose first four bytes aren't `\27LJ\1`. Parsed with the 2.0 opcode table, the dump splits into 339 function prototypes and ends on its last byte. I read it with my own dump parser and disassembler, the [ljd](https://github.com/Aussiemon/ljd) decompiler, and Python.
 
 The last prototype is a wrapper that calls the next-to-last one with `...`. That one, prototype 337, starts like this (my disassembler; register numbers as in the bytecode, loop bodies trimmed):
 
@@ -45,9 +57,21 @@ The last prototype is a wrapper that calls the next-to-last one with `...`. That
 0153 ISNES  17 20    ; first char == '1' ?
 ```
 
-(1) is the string array. (2) is the accessor every other function calls: `F0(47106)` is `T[370]`, which turns out to be `preload`. (3) is three pairs of indices; the loop reverses the whole array, then the first 1,341 entries, then the rest, which rotates it. (4) is two lookup tables, character to value, for a shuffled 64-character alphabet and a shuffled 85-character one. (5) picks the decoder by the first character: `T` means base64 with `=` padding, `1` means base85 in groups of five, where a short final group is padded with the value 84 and yields one byte less than its length.
+(1) is the string array. (2) is the accessor every other function calls: `F0(47106)` is `T[370]`, which turns out to be `preload`. (3) is three pairs of indices; the loop reverses the whole array, then the first 1,341 entries, then the rest, which rotates it.
 
-MotherSphere and whykusanagi name the obfuscator as Prometheus. Its [`ConstantArray.lua`](https://github.com/prometheus-lua/Prometheus/blob/master/src/prometheus/steps/ConstantArray.lua) has every piece above: `Rotate` with the three `reverse` calls, a wrapper offset drawn from `±MaxWrapperOffset` (default 65,535), and `Encoding = "mixed"`, which became the default on 2026-03-24 and picks base64 or base85 per string, marked by two random prefix characters. Numbers stay inline in this bundle's bytecode and only strings went into the array, so the step ran with `StringsOnly = true`, as Prometheus's presets set it. The alphabets, the prefixes, the rotation point and the offset all change on every obfuscation run unless a fixed seed is given. WormW's `decode_bundle_strings.py` hard-codes this build's alphabets; their `lj_bcdump.py` already pulls the array and both alphabets out of the raw dump but hard-codes the prefixes, the offset 46736 and the rotation ranges. The [decoder in the tools repo](https://github.com/stateless-re/tools/tree/main/families/k2f) also finds the rotation pairs and the accessor offset in the bytecode, and works out which prefix means which encoding by trying both. I tested it on this bundle and on six files of my own: one benign script, obfuscated three times with Prometheus's Weak preset and compiled with LuaJIT 2.0 and 2.1. All six decode, with different prefixes, offsets of both signs and different rotation points. Its output for the bundle (abridged and reflowed):
+(4) is two lookup tables, character to value, for a shuffled 64-character alphabet and a shuffled 85-character one. (5) picks the decoder by the first character: `T` means base64 with `=` padding, `1` means base85 in groups of five. In base85 a short final group is padded with the value 84 and yields one byte less than its length.
+
+MotherSphere and whykusanagi name the obfuscator as Prometheus. Its [`ConstantArray.lua`](https://github.com/prometheus-lua/Prometheus/blob/master/src/prometheus/steps/ConstantArray.lua) has every piece above:
+
+- `Rotate` with the three `reverse` calls;
+- a wrapper offset drawn from `±MaxWrapperOffset` (default 65,535);
+- `Encoding = "mixed"`, which became the default on 2026-03-24 and picks base64 or base85 per string, marked by two random prefix characters.
+
+Numbers stay inline in this bundle's bytecode and only strings went into the array, so the step ran with `StringsOnly = true`, as Prometheus's presets set it. The alphabets, the prefixes, the rotation point and the offset all change on every obfuscation run unless a fixed seed is given.
+
+WormW's `decode_bundle_strings.py` hard-codes this build's alphabets. Their `lj_bcdump.py` already pulls the array and both alphabets out of the raw dump, but hard-codes the prefixes, the offset 46736 and the rotation ranges.
+
+The [decoder in the tools repo](https://github.com/stateless-re/tools/tree/main/families/k2f) also finds the rotation pairs and the accessor offset in the bytecode, and works out which prefix means which encoding by trying both. I tested it on this bundle and on six files of my own: one benign script, obfuscated three times with Prometheus's Weak preset and compiled with LuaJIT 2.0 and 2.1. All six decode, with different prefixes, offsets of both signs and different rotation points. Its output for the bundle (abridged and reflowed):
 
 ```json
 {
@@ -64,7 +88,9 @@ MotherSphere and whykusanagi name the obfuscator as Prometheus. Its [`ConstantAr
 }
 ```
 
-The build tag matches the `K2F_LUA_BUILD` value Bitdefender published, the ten lookups WormW lists come out the same, and all 1,790 strings match a second decoder I wrote straight from the disassembly. With the strings in place, ljd's output becomes readable Lua. The rest of this post quotes that output with the decoded strings substituted and the names cleaned up. ljd loses track of upvalues in a stripped dump, so I checked the quoted claims against the bytecode; the fact-check before publishing still caught two I had read wrong.
+The build tag matches the `K2F_LUA_BUILD` value Bitdefender published, the ten lookups WormW lists come out the same, and all 1,790 strings match a second decoder I wrote straight from the disassembly.
+
+With the strings in place, ljd's output becomes readable Lua. The rest of this post quotes that output with the decoded strings substituted and the names cleaned up. ljd loses track of upvalues in a stripped dump, so I checked the quoted claims against the bytecode. The fact-check before publishing still caught two I had read wrong.
 
 ## Forty-six modules, nineteen commands
 
@@ -100,7 +126,11 @@ return M
 | `ping` | none | `ok` | none |
 | `close` | `sid` | `ok` | none |
 
-Any other `op` gets `EOP`, and an error anywhere inside becomes `EIO` with the message. Session IDs count up from 1. Without `mode`, `open` runs nothing yet: the first `read` runs the command, buffers its whole output, and later reads page through it. In stream mode the command supplies its own reader; four commands have one (`download`, `file_chunk`, `exec`, `browserscan`), and `exec`'s stream plus `write` is the interactive shell its error message mentions ("use the interactive shell to run without a deadline"). Bitdefender's table gives `file_chunk` 2 MiB reads; 2 MiB is the channel's default, while `file_chunk` itself, in buffered mode, returns at most 524,288 bytes per call.
+Any other `op` gets `EOP`, and an error anywhere inside becomes `EIO` with the message. Session IDs count up from 1. Without `mode`, `open` runs nothing yet: the first `read` runs the command, buffers its whole output, and later reads page through it.
+
+In stream mode the command supplies its own reader; four commands have one (`download`, `file_chunk`, `exec`, `browserscan`). `exec`'s stream plus `write` is the interactive shell its error message mentions ("use the interactive shell to run without a deadline").
+
+Bitdefender's table gives `file_chunk` 2 MiB reads. 2 MiB is the channel's default, while `file_chunk` itself, in buffered mode, returns at most 524,288 bytes per call.
 
 Above the handler, `channel` installs three things on `download_tips_view`: an empty `close`, and a `default_layout` built from two helpers (cleaned up; the names are mine):
 
@@ -120,7 +150,11 @@ if type(download_tips_view["default_layout"]) ~= "function" then
 end
 ```
 
-`drop_modal` does nothing unless the launcher's `poptips_view` has `_close` and `get_ctr_data` and `opts.is_multi_win` is set; then it clears `opts.modal` and closes the matching control through `poptips_view._close`. A window laid out by `download_tips_view` ends up one pixel square at a position no monitor shows. All of this is installed only where the launcher hasn't defined it, so it fills a gap and overrides nothing; if the launcher has its own `default_layout`, nothing is hidden. I think, without being able to check, that this hides the launcher window the operator's script runs in: the requests have to come from script in the launcher's webview, MotherSphere traced that script to the modified launcher JavaScript, and a popup holding it would otherwise be visible. I found no mention of this code in the reports or the community repositories.
+`drop_modal` does nothing unless the launcher's `poptips_view` has `_close` and `get_ctr_data` and `opts.is_multi_win` is set. Then it clears `opts.modal` and closes the matching control through `poptips_view._close`. A window laid out by `download_tips_view` ends up one pixel square at a position no monitor shows.
+
+All of this is installed only where the launcher hasn't defined it, so it fills a gap and overrides nothing. If the launcher has its own `default_layout`, nothing is hidden.
+
+I think, without being able to check, that this hides the launcher window the operator's script runs in. My reasons: the requests have to come from script in the launcher's webview, MotherSphere traced that script to the modified launcher JavaScript, and a popup holding it would otherwise be visible. I found no mention of this code in the reports or the community repositories.
 
 ## creds decrypts the launcher's saved login
 
@@ -133,7 +167,11 @@ key = first 16 characters of lowercase hex MD5(mac), used as 16 ASCII bytes
 
 It decrypts both files with that key and parses the result as JSON, moving on to the next adapter if either file doesn't decode. It then finds the account named in `last_user.dat`, base64-decodes that account's `pwd` field and decrypts it with the same key, and returns `{account, password}`. MD5 comes from `BCryptOpenAlgorithmProvider("MD5")`, the only algorithm name the bundle gives BCrypt.
 
-The cipher is TEA with 16 rounds instead of the usual 32. The round function (prototype 306) starts at `sum = 0x9E3779B9 * 16` and is otherwise the textbook TEA decryption. Prototype 307 chains 8-byte blocks as `P[i] = D(C[i] ^ X[i-1]) ^ C[i-1]`, where `X[i-1]` is the previous block's raw TEA output and both start at zero, then strips a layout of one header byte (its low three bits are the pad length), the pad, two salt bytes, the data, and seven trailing bytes, which it drops without checking that they are zero. That matches the TEA variant in Tencent's client libraries, which fits a launcher from a Tencent-owned publisher. The key depends only on values any program on the machine can read, so I'm describing it, not publishing a decryptor for the file.
+The cipher is TEA with 16 rounds instead of the usual 32. The round function (prototype 306) starts at `sum = 0x9E3779B9 * 16` and is otherwise the textbook TEA decryption.
+
+Prototype 307 chains 8-byte blocks as `P[i] = D(C[i] ^ X[i-1]) ^ C[i-1]`, where `X[i-1]` is the previous block's raw TEA output and both start at zero. It then strips a layout of one header byte (its low three bits are the pad length), the pad, two salt bytes, the data, and seven trailing bytes. It drops the trailing bytes without checking that they are zero.
+
+That matches the TEA variant in Tencent's client libraries, which fits a launcher from a Tencent-owned publisher. The key depends only on values any program on the machine can read, so I'm describing it, not publishing a decryptor for the file.
 
 ## The App-Bound path stops before AES
 
@@ -158,15 +196,31 @@ local function app_bound(local_state, key_name)
 end
 ```
 
-`with_system` (1) walks the process list for `services.exe`, duplicates its token and sets it on the thread with `SetThreadToken`. The first DPAPI layer comes off as SYSTEM, the second (2) as the user. A container with flag byte 3 holds an AES key that is itself encrypted: (3) opens `Google Chromekey1` (`Microsoft Edgekey1` for Edge) in the `Microsoft Software Key Storage Provider` and calls `NCryptDecrypt`, and (4) XORs the result with a fixed 32-byte value. This is the publicly documented [v20 unwrap](https://github.com/runassu/chrome_v20_decryption), with the same XOR constant, rewritten for LuaJIT's FFI; the reference code borrows the token of `lsass.exe`, the bundle that of `services.exe`.
+`with_system` (1) walks the process list for `services.exe`, duplicates its token and sets it on the thread with `SetThreadToken`. The first DPAPI layer comes off as SYSTEM, the second (2) as the user.
 
-Then it stops. The function returns the XORed key, the IV, the ciphertext and the tag as separate base64 fields (`abe_ctx` in the output) instead of running AES-GCM to get the final key, and the value formatter treats saved passwords and cookies the same way: it strips the `v10` or `v20` prefix and base64-encodes the rest, or marks the entry `locked` when no key was found. I checked for an AES step that might live elsewhere and there is none: no `BCryptDecrypt` declaration, no AES S-box (no table constant holds 16 or more numbers, and the only big number-valued tables are the two alphabets), and no AES or GCM string. The classic Chrome key does leave in the clear, already unwrapped from DPAPI, which is all anyone needs for `v10` values. Firefox's `key4.db` and `logins.json` go out whole. Cookies go too unless the operator sets `collect_cookies` to `false`.
+A container with flag byte 3 holds an AES key that is itself encrypted. (3) opens `Google Chromekey1` (`Microsoft Edgekey1` for Edge) in the `Microsoft Software Key Storage Provider` and calls `NCryptDecrypt`, and (4) XORs the result with a fixed 32-byte value.
+
+This is the publicly documented [v20 unwrap](https://github.com/runassu/chrome_v20_decryption), with the same XOR constant, rewritten for LuaJIT's FFI. The reference code borrows the token of `lsass.exe`, the bundle that of `services.exe`.
+
+Then it stops. The function returns the XORed key, the IV, the ciphertext and the tag as separate base64 fields (`abe_ctx` in the output) instead of running AES-GCM to get the final key.
+
+The value formatter treats saved passwords and cookies the same way. It strips the `v10` or `v20` prefix and base64-encodes the rest, or marks the entry `locked` when no key was found.
+
+I checked for an AES step that might live elsewhere and there is none:
+
+- no `BCryptDecrypt` declaration;
+- no AES S-box (no table constant holds 16 or more numbers, and the only big number-valued tables are the two alphabets);
+- no AES or GCM string.
+
+The classic Chrome key does leave in the clear, already unwrapped from DPAPI, which is all anyone needs for `v10` values. Firefox's `key4.db` and `logins.json` go out whole. Cookies go too unless the operator sets `collect_cookies` to `false`.
 
 ## keyscan matches tokens without regular expressions
 
-MotherSphere's [target-path list](https://gist.github.com/MotherSphere/d6c049a09ba8ac3085c51ee9df24a4e5) covers what `keyscan` reads. In the bytecode that is `keyscan.sources`, 131 entries of `{tool, format, paths}` for 104 tools, 14 of them AI coding assistants, plus nine collectors (`ssh_targets`, `git_credentials`, `environment`, `history`, `kube`, `credman`, `sessions`, `gpg`, `host_stores`) and a project-folder walk over `source`, `code`, `dev`, `Programming`, `Documents` and `Desktop`. Each source entry names a format (`json` 53 times, `lines` 19, `yaml` 17, `toml` 12, and nine other formats including `dpapi`, `sqlite`, `pgpass` and `filezilla`) so the reader can pull values out of a file instead of shipping it whole.
+MotherSphere's [target-path list](https://gist.github.com/MotherSphere/d6c049a09ba8ac3085c51ee9df24a4e5) covers what `keyscan` reads. In the bytecode that is `keyscan.sources`: 131 entries of `{tool, format, paths}` for 104 tools, 14 of them AI coding assistants. On top of those come nine collectors (`ssh_targets`, `git_credentials`, `environment`, `history`, `kube`, `credman`, `sessions`, `gpg`, `host_stores`) and a project-folder walk over `source`, `code`, `dev`, `Programming`, `Documents` and `Desktop`.
 
-What decides whether a value counts as a secret is `keyscan.detect`. Lua patterns have no alternation and no counted repetition, so the module carries its own matcher: each detector is a list of steps, either "one of these literals" or "a run of characters from this set, between m and n long".
+Each source entry names a format (`json` 53 times, `lines` 19, `yaml` 17, `toml` 12, and nine other formats including `dpapi`, `sqlite`, `pgpass` and `filezilla`) so the reader can pull values out of a file instead of shipping it whole.
+
+What decides whether a value counts as a secret is `keyscan.detect`. Lua patterns have no alternation and no counted repetition, so the module carries its own matcher. Each detector is a list of steps, either "one of these literals" or "a run of characters from this set, between m and n long".
 
 ```lua
 { "aws-access-key", { lit({"AKIA", "ASIA", "ABIA", "ACCA", "A3TA", ... "A3T9"}), run("A-Z2-7", 16) } },
@@ -175,11 +229,23 @@ What decides whether a value counts as a secret is `keyscan.detect`. Lua pattern
                       run("A-Za-z0-9_-", 10, inf), lit("."), run("A-Za-z0-9_-", 10, inf) } },
 ```
 
-There are 37 detectors in the table. All but one require a non-word character on both sides of the match; `slack-webhook` sets `boundary = false`. Seven are for AI and model-hosting API keys; most of the rest cover cloud providers, source hosting, package registries, payments, messaging and observability, plus JWTs, `age` secret keys and Slack webhooks, which is where the three `hooks.slack[.]com` URL prefixes in the table come from. Three more are hand-written functions, run before the table: PEM private-key blocks, an older API-key format that embeds a fixed base64 marker, and the Azure client-secret shape with `Q~` near the start. The prefixes are the ones public secret-scanning rule sets use; this reads like a port of one into Lua.
+There are 37 detectors in the table. All but one require a non-word character on both sides of the match; `slack-webhook` sets `boundary = false`.
+
+Seven are for AI and model-hosting API keys. Most of the rest cover cloud providers, source hosting, package registries, payments, messaging and observability, plus JWTs, `age` secret keys and Slack webhooks. The Slack webhooks are where the three `hooks.slack[.]com` URL prefixes in the table come from.
+
+Three more are hand-written functions, run before the table: PEM private-key blocks, an older API-key format that embeds a fixed base64 marker, and the Azure client-secret shape with `Q~` near the start.
+
+The prefixes are the ones public secret-scanning rule sets use; this reads like a port of one into Lua.
 
 ## chrome_install, briefly
 
-The Chrome persistence is documented in detail by MotherSphere: a per-user `InprocServer32` value for CLSID `{E77CC89B-7401-4C04-8CED-149DB35ADD04}` pointing at `platform_experience_helper.dll` in a 64-hex folder under `%LOCALAPPDATA%\Google\Chrome\User Data\PlatformExperienceHelper`, with the agent ID and a token patched into each copy. The bytecode adds the argument names and checks. `chrome_install` takes `dll` (base64), `agent` (32 hex characters), `token` (64 hex) and `sha` (64 hex). `win32.hook` writes the agent ID over the 32 zeros after `/px/`, writes the token over the 64-character `BEARER000…` placeholder, and refuses if either placeholder is missing or appears twice, or if the length changes. `win32.chrome` writes the file and sets the value under HKCU (`write_string` in `win32.registry` uses the `0x80000001` handle), skips both if they already match, deletes other hash folders, and removes the two older layouts MotherSphere lists.
+The Chrome persistence is documented in detail by MotherSphere: a per-user `InprocServer32` value for CLSID `{E77CC89B-7401-4C04-8CED-149DB35ADD04}` pointing at `platform_experience_helper.dll` in a 64-hex folder under `%LOCALAPPDATA%\Google\Chrome\User Data\PlatformExperienceHelper`. The agent ID and a token are patched into each copy.
+
+The bytecode adds the argument names and checks. `chrome_install` takes `dll` (base64), `agent` (32 hex characters), `token` (64 hex) and `sha` (64 hex).
+
+`win32.hook` writes the agent ID over the 32 zeros after `/px/`, and the token over the 64-character `BEARER000…` placeholder. It refuses if either placeholder is missing or appears twice, or if the length changes.
+
+`win32.chrome` writes the file and sets the value under HKCU (`write_string` in `win32.registry` uses the `0x80000001` handle). It skips both if they already match, deletes other hash folders, and removes the two older layouts MotherSphere lists.
 
 ## Wrong turns
 
@@ -230,7 +296,9 @@ The bundle never names the operator's endpoint; the delivery URL and the exfiltr
 
 ## Ending
 
-The launcher's saved login is protected by a key derived from the MAC address, which any process on the machine can read, and the k2f agent undoes it in a few small Lua functions. Browser passwords and cookies leave as ciphertext with their keys alongside, everything else as plain answers to five JSON requests. The detections that hold up are on the host, where the bundle has to do things no launcher does: borrow a SYSTEM token, open Chrome's KSP key, and write a COM registration that points into Chrome's profile folder.
+The launcher's saved login is protected by a key derived from the MAC address, which any process on the machine can read, and the k2f agent undoes it in a few small Lua functions. Browser passwords and cookies leave as ciphertext with their keys alongside, everything else as plain answers to five JSON requests.
+
+The detections that hold up are on the host, where the bundle has to do things no launcher does: borrow a SYSTEM token, open Chrome's KSP key, and write a COM registration that points into Chrome's profile folder.
 
 ## Credits and further reading
 

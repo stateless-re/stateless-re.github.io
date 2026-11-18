@@ -2,7 +2,7 @@
 title: "Twenty NIK C2 files, one user ID, and a build that can't read its own config"
 date: 2026-11-14T11:52:40+00:00
 slug: "nik-c2-config"
-description: "All eight NIK C2 hashes from the Talos report plus twelve more from MalwareBazaar: the config XORed with the string \"NIK\", the key that is SHA-256 of the seed's text, how the certificate pin and the fallback address really work, a user ID shared by every build, a v2 build whose protected config can't decode, two delivery wrappers, and an extractor."
+description: "The NIK C2 agent XORs its config with the string \"NIK\", all 17 decodable configs share one user ID, and one build can't decrypt its own config."
 tags: ["nik-c2", "nikrat", "golang", "config-extraction", "certificate-pinning", "windows"]
 sample:
   family: "NIK C2 agent (NIKRAT)"
@@ -11,17 +11,21 @@ sample:
 toc: true
 ---
 
-The NIK C2 agent stores its C2 address, its AES seed and its agent ID as hex strings XORed with a rolling three-byte key, and the key is the ASCII string `NIK`. Its AES-256-GCM key is SHA-256 of the seed's hex text, and the hard-coded address `2.26.51[.]12` that looks like a fallback is used only when the primary field is empty. Every one of the 17 configs I could decode carries the same user ID, `7b85683a-c3e6-43c2-9bfb-583377ada5f6`, which the agent sends in each heartbeat as `user_uid`. One build stores its config in a different, protected format that, on my reading of its code, the agent itself can't decrypt, which sends it to that default address.
+The NIK C2 agent stores its C2 address, its AES seed and its agent ID as hex strings XORed with a rolling three-byte key, and the key is the ASCII string `NIK`. Every one of the 17 configs I could decode carries the same user ID, `7b85683a-c3e6-43c2-9bfb-583377ada5f6`, which the agent sends in each heartbeat as `user_uid`.
 
-Cisco Talos [described NIK C2](https://blog.talosintelligence.com/nik-c2-new-ai-enabled-framework/) on October 29 (Chetan Raghuprasad): a Go remote access tool with more than 52 commands, three C2 tiers and AES-256-GCM traffic. The report gives one seed and the key derived from it, and says the seed is "stored in obfuscated form in the binary data section" and that the key is "derived from a hardcoded seed", without the encoding or the derivation. Threatray uploaded thirteen files to MalwareBazaar under the name NIKRAT (one on September 29, twelve on October 30, one of those a Talos hash) and published an [IOC list](https://github.com/threatray/threat-research/tree/main/2026-10-30-NIKRAT) of sandbox C2s, mutexes and persistence paths. I read all twenty files with pefile, capstone, a small Go symbol-table parser and Python. This post covers the config format and the parts of the network logic the two reports don't, plus a [config extractor](https://github.com/stateless-re/tools/tree/main/families/nikc2).
+Its AES-256-GCM key is SHA-256 of the seed's hex text. The hard-coded address `2.26.51[.]12` that looks like a fallback is used only when the primary field is empty. One build stores its config in a different, protected format that, on my reading of its code, the agent itself can't decrypt, which sends it to that default address.
+
+Cisco Talos [described NIK C2](https://blog.talosintelligence.com/nik-c2-new-ai-enabled-framework/) on October 29 (Chetan Raghuprasad): a Go remote access tool with more than 52 commands, three C2 tiers and AES-256-GCM traffic. The report gives one seed and the key derived from it. It says the seed is "stored in obfuscated form in the binary data section" and that the key is "derived from a hardcoded seed", without the encoding or the derivation.
+
+Threatray uploaded thirteen files to MalwareBazaar under the name NIKRAT (one on September 29, twelve on October 30, one of those a Talos hash). It also published an [IOC list](https://github.com/threatray/threat-research/tree/main/2026-10-30-NIKRAT) of sandbox C2s, mutexes and persistence paths. This post covers the config format and the parts of the network logic the two reports don't, plus a [config extractor](https://github.com/stateless-re/tools/tree/main/families/nikc2).
 
 ## What I found
 
-- In every build but one, the C2 URL, the user ID, the seed and the agent ID are hex strings decoded with `out[i] = in[i] ^ (("NIK")[i % 3] + i)`. The AES key is `SHA-256(seed as ASCII hex)`; that reproduces the key Talos published from the seed Talos published.
-- Every Go build carries the same hard-coded address, `hxxps://2.26.51[.]12:443`, but it enters the server list only when the primary C2 field is empty. The "embedded encrypted server list" is empty in the 16 builds that have one and whose config decodes, so those agents have exactly one server and never rotate. TLS chain validation is off (`InsecureSkipVerify`); the only check is a pin on the SHA-256 of the server's DER certificate, which a builder placeholder `{{SERVER_FINGERPRINT}}` would disable.
-- The 14 builds that kept their Go symbols have 28, 52, 55, 59 or 60 command handlers, and each smaller set is contained in every larger one. The oldest-looking build has no server rotation at all.
-- Build `5a39bd95` stores its fields as Base64 blobs shaped `256 bytes | IV | ciphertext`. Its decoder hands the 256-byte blob straight to `aes.NewCipher`, which rejects any key that isn't 16, 24 or 32 bytes, so the fields come out empty and the agent's defaults take over, including the C2 2.26.51[.]12, the address Threatray's IOC list gives for this file.
-- Two of the twenty files are wrappers. A PyInstaller binder drops agent `e7f51534` next to a fake game-cheat menu, and a .NET packer called FileCrypt decrypts to agent `876b1dbc` with a master key stored in its own code.
+- In every build but one, the config fields are hex strings decoded with `out[i] = in[i] ^ (("NIK")[i % 3] + i)`, and the AES key is `SHA-256(seed as ASCII hex)`.
+- The hard-coded `hxxps://2.26.51[.]12:443` enters the server list only when the primary C2 field is empty, and the "embedded encrypted server list" is empty, so agents never rotate.
+- The 14 builds that kept their Go symbols have 28, 52, 55, 59 or 60 command handlers, and each smaller set is contained in every larger one.
+- Build `5a39bd95` stores its fields as Base64 blobs shaped `256 bytes | IV | ciphertext` that its own decoder can't decrypt, so it uses the default C2.
+- Two of the twenty files are wrappers: a PyInstaller binder with a fake game-cheat menu, and a .NET packer called FileCrypt with its master key in its own code.
 
 ## Twenty files, eighteen agents
 
@@ -48,13 +52,15 @@ The Talos IOC file lists eight SHA-256 hashes. One is on MalwareBazaar (`ae38f11
 | `9b228bf5` | Bazaar | no symbols | `hxxps://2.26.49[.]181:443` | `750872a6` | `svchost.exe` |
 | `5a39bd95` | Bazaar | no symbols | protected (see below) | `750872a6` | `opsec.exe` |
 
-The other two files are the wrappers: `46bea5c1` (PyInstaller) and `9d9d9901` (.NET). All 18 agents are x64 Go binaries. The 14 with a symbol table were built with go1.23.4; the four without one have no Go version string and no `/opt/nik_panel/...` build path left, and three of them (`0008c95f`, `5a39bd95`, `876b1dbc`) keep only a few hundred `runtime.` strings, which looks like an obfuscator that renames symbols. Their string literals are intact, which is why the same config scan works on them.
+The other two files are the wrappers: `46bea5c1` (PyInstaller) and `9d9d9901` (.NET). All 18 agents are x64 Go binaries.
+
+The 14 with a symbol table were built with go1.23.4. The four without one have no Go version string and no `/opt/nik_panel/...` build path left. Three of them (`0008c95f`, `5a39bd95`, `876b1dbc`) keep only a few hundred `runtime.` strings, which looks like an obfuscator that renames symbols. Their string literals are intact, which is why the same config scan works on them.
 
 The build path Talos quotes, `build_52b79724a1fc4b8f`, belongs to `30817712`, not to `ae38f118`, the one Talos hash on Bazaar (`build_5ab821a2a2bea97a`). Each build has its own directory under `/opt/nik_panel/data/`, which fits a panel that writes a fresh source tree per build.
 
 ## The config is hex, XORed with "NIK"
 
-Go stripped the symbols but not the function table, so the names come back: 6,571 functions in `ae38f118`, 261 of them in package `main`. `main.init.0` runs before `main.main` and calls `main.dec` on four string globals, writing each result back over the original. Here is `main.dec`, with the stack check and the empty-string returns trimmed:
+Go stripped the symbols but not the function table, so the names come back: 6,571 functions in `ae38f118`, 261 of them in package `main`. I read all twenty files with pefile, capstone, a small Go symbol-table parser and Python. `main.init.0` runs before `main.main` and calls `main.dec` on four string globals, writing each result back over the original. Here is `main.dec`, with the stack check and the empty-string returns trimmed:
 
 ```asm
 0x6d239c: bt   ebx, 0                    ; (1) odd length -> return ""
@@ -112,7 +118,9 @@ $ python3 -c "import hashlib; print(hashlib.sha256(b'd791dd0ff3228ed29a8d7333d45
 4887afc0a574e9419a9695ef083460f58e4ef9a1c40793523ce112251273bdf9
 ```
 
-That is the key Talos printed, and the seed decodes from build `30817712`, the one with Talos's build path. Every build has its own seed except `5d25efba` and `bf83345c`, two 28-handler builds pointed at the same domain, which share `c85a5729…` and therefore one key. If the seed is shorter than 16 characters, `main.main` replaces it with 32 random bytes in hex. A build like that encrypts with a key the server has no way to know, so I take the branch as a guard for a broken build rather than a feature.
+That is the key Talos printed, and the seed decodes from build `30817712`, the one with Talos's build path. Every build has its own seed except `5d25efba` and `bf83345c`, two 28-handler builds pointed at the same domain, which share `c85a5729…` and therefore one key.
+
+If the seed is shorter than 16 characters, `main.main` replaces it with 32 random bytes in hex. A build like that encrypts with a key the server has no way to know, so I take the branch as a guard for a broken build rather than a feature.
 
 The wire format is in the Talos report: a random 12-byte nonce, the ciphertext and the tag, Base64-encoded under the JSON key `e`. With the per-build key from the extractor, anyone holding a capture of this traffic can decrypt it.
 
@@ -124,7 +132,15 @@ Talos says the agent "routes traffic across three prioritized C2 tiers", "runtim
 2. each `|`-separated entry of another `dec`-encoded global, skipping any entry equal to the primary;
 3. if the list is still empty, the literal `hxxps://2.26.51[.]12:443`.
 
-Because the primary goes in first, the list is empty only when the primary decodes to nothing, and only then does the hard-coded address enter it. `main.nextServer`, which the HTTP loop calls after a failed POST, moves to the next entry only when the list has more than one (`cmp rbx, 1; jle` at 0x6d2b78). In the 16 builds that have a server-list global and a decodable config, that global is an empty string: in `ae38f118` it sits at 0xa448e0, in the zero-filled part of `.data`, and only `initServerList` reads it; no function in package `main` writes the list except `initServerList` itself. So each of those agents has one server, its primary, and never rotates. The literal `hxxps://2.26.51[.]12:443` is the same in all 18 Go builds, but in this set it is reached only by `0fb93dbb`, whose primary is that address, and by `5a39bd95` (below). `0fb93dbb` has no `initServerList`, `getServer` or `nextServer` at all, so it predates rotation. I first read the literal as a fallback every agent would walk to when its primary died; the fact-check of this post caught that the rotation guard makes that impossible with a one-entry list.
+Because the primary goes in first, the list is empty only when the primary decodes to nothing. Only then does the hard-coded address enter it.
+
+`main.nextServer`, which the HTTP loop calls after a failed POST, moves to the next entry only when the list has more than one (`cmp rbx, 1; jle` at 0x6d2b78).
+
+In the 16 builds that have a server-list global and a decodable config, that global is an empty string. In `ae38f118` it sits at 0xa448e0, in the zero-filled part of `.data`, and only `initServerList` reads it. No function in package `main` writes the list except `initServerList` itself. So each of those agents has one server, its primary, and never rotates.
+
+The literal `hxxps://2.26.51[.]12:443` is the same in all 18 Go builds, but in this set it is reached only by `0fb93dbb`, whose primary is that address, and by `5a39bd95` (below). `0fb93dbb` has no `initServerList`, `getServer` or `nextServer` at all, so it predates rotation.
+
+I first read the literal as a fallback every agent would walk to when its primary died. The fact-check of this post caught that the rotation guard makes that impossible with a one-entry list.
 
 The TLS setup is where the pin comes in. `main.pinnedTLSConfig` allocates a `tls.Config` and sets three fields: offset 0xa0 (`InsecureSkipVerify`) to 1, offset 0x80 (`ServerName`) to the host, and offset 0x50 (`VerifyPeerCertificate`) to a closure that calls `main.verifyServerCert`. With chain checks off, the callback is the only check. Its logic, rewritten from the disassembly:
 
@@ -144,7 +160,11 @@ func verifyServerCert(rawCerts [][]byte, _ [][]*x509.Certificate) error {
 }
 ```
 
-An unfilled builder placeholder turns the pin off (1). The pin is skipped when the current server isn't the primary (2), which would matter for a build with a real server list; none of these has one, so `currentIsPrimary` is always true and the pin always applies (`0fb93dbb` has no such check at all). What it hashes is the leaf certificate as sent, DER-encoded (3), so the pin is the ordinary SHA-256 certificate fingerprint that certificate-scan services index. Five pins appear across the 18 builds. Threatray already published one of them, `750872a6…`, for the `CN=2.26.49[.]181` certificate on 2.26.49[.]181 and 191.44.109[.]125; the other four are in the indicators below. Builds with the primary 2.26.49[.]181 pin two different certificates (`6717f6b8…` in the three 60-handler builds, `750872a6…` in `9b228bf5`), so I think that server changed certificates at least once.
+An unfilled builder placeholder such as `{{SERVER_FINGERPRINT}}` turns the pin off (1). The pin is skipped when the current server isn't the primary (2), which would matter for a build with a real server list. None of these has one, so `currentIsPrimary` is always true and the pin always applies (`0fb93dbb` has no such check at all).
+
+What it hashes is the leaf certificate as sent, DER-encoded (3), so the pin is the ordinary SHA-256 certificate fingerprint that certificate-scan services index.
+
+Five pins appear across the 18 builds. Threatray already published one of them, `750872a6…`, for the `CN=2.26.49[.]181` certificate on 2.26.49[.]181 and 191.44.109[.]125; the other four are in the indicators below. Builds with the primary 2.26.49[.]181 pin two different certificates (`6717f6b8…` in the three 60-handler builds, `750872a6…` in `9b228bf5`), so I think that server changed certificates at least once.
 
 ## One user ID in every build
 
@@ -165,7 +185,9 @@ WatchdogStatus +0x80  json:"watchdog_status,omitempty"
 
 `main.heartbeatData` builds this struct at `rsp+0x68` and stores the decoded UUID at `rsp+0x98`, which is offset 0x30: `UserUID`. Every agent therefore reports the same `user_uid`. Read with the empty-field default of `default`, this looks like the ID of the panel account that ordered the build. I can't see the panel, so that reading is an inference, but it predicts that all 17 builds, spread over five C2 addresses and five handler counts, were ordered from one account.
 
-The agent ID is different per build and embedded. `main.agentID` uses the embedded value if there is one (`ag_` plus 12 hex digits in every build here). Only when it's empty does it read `%APPDATA%\NIKPanel\agent.id`, or generate `ag_` plus 16 random hex digits and write that file. The `ag_<16 hex chars>` format in the Talos report matches that generated branch. These 17 builds never reach it, so the `NIKPanel\agent.id` file is not a reliable host indicator for them. The protected build below is the exception.
+The agent ID is different per build and embedded. `main.agentID` uses the embedded value if there is one (`ag_` plus 12 hex digits in every build here). Only when it's empty does it read `%APPDATA%\NIKPanel\agent.id`, or generate `ag_` plus 16 random hex digits and write that file.
+
+The `ag_<16 hex chars>` format in the Talos report matches that generated branch. These 17 builds never reach it, so the `NIKPanel\agent.id` file is not a reliable host indicator for them. The protected build below is the exception.
 
 ## The agent grew between builds
 
@@ -179,7 +201,11 @@ The handler names (`main.handleQuickSteal`, `main.handleBootRansom`, ...) surviv
 | 59 | `1fee4cd8`, `ae38f118` | `AIGenerate`, `BootRansom`, `Convert`, `MicStream` |
 | 60 | `30817712`, `507436d5`, `626619e1`, `6583eb22`, `e7f51534` | `SelfHeal` |
 
-I read this as versions of one code base, for two reasons. The config layout changes in step with it: the `self_heal` slot appears exactly in the 60-handler builds. And the Hybrid Analysis submission dates of the seven Talos files follow the handler counts: the two 28-handler builds on 2026-08-14, the two 52-handler builds on 2026-08-16 and 08-17, then the 59-handler `1fee4cd8` and the 60-handler `30817712` and `6583eb22` on 2026-08-19. Talos notes that the PE timestamps are zeroed, so submission dates are the best clock available. A builder that strips modules per order would also produce nested sets, so this stays an inference, but the dates lean toward versions.
+I read this as versions of one code base, for two reasons. The config layout changes in step with it: the `self_heal` slot appears exactly in the 60-handler builds.
+
+The second reason is timing: the Hybrid Analysis submission dates of the seven Talos files follow the handler counts. The two 28-handler builds were submitted on 2026-08-14 and the two 52-handler builds on 2026-08-16 and 08-17. The 59-handler `1fee4cd8` and the 60-handler `30817712` and `6583eb22` followed on 2026-08-19. Talos notes that the PE timestamps are zeroed, so submission dates are the best clock available.
+
+A builder that strips modules per order would also produce nested sets, so this stays an inference, but the dates lean toward versions.
 
 ## A build that can't read its own config
 
@@ -192,21 +218,37 @@ I read this as versions of one code base, for two reasons. The config layout cha
 
 The `|` fields split into 256, 16 and 16 to 48 bytes; the `:` field into 16 and 80. A 256-byte first part looked like an AES key wrapped with RSA-2048, so I went looking for the private key the agent would need: PEM headers, PKCS#1 and PKCS#8 DER prefixes, PKIX public keys, 512-digit hex numbers. There was none, and the right question was what the code does with the blob.
 
-The build has no symbols, but `.pdata` still gives function boundaries, and cross-references to the config slots lead to one function that decodes four of them in place, as `main.init.0` does. Its decoder dispatches on the separator: a string containing `|` goes to one routine, a string containing `:` to another (passing the seed slot's current value as the key), anything else to the old hex-and-`NIK` routine. The `|` routine splits into three parts, Base64-decodes each with `StdEncoding`, and passes part one straight to a function that accepts only 16-, 24- or 32-byte keys (`aes.NewCipher`; its length switch is the giveaway). Then CBC with part two as the IV. There is no RSA step. A 256-byte key fails, and the routine returns an empty string.
+The build has no symbols, but `.pdata` still gives function boundaries. Cross-references to the config slots lead to one function that decodes four of them in place, as `main.init.0` does. Its decoder dispatches on the separator:
 
-The seed fares no better. When `init` decodes the seed slot, the key it passes is the seed slot's own 133-character encoded string, and `aes.NewCipher` rejects that too. So, on my reading, all five protected fields decode to empty, and `main.main`'s defaults take over: primary C2 `hxxps://2.26.51[.]12:443`, user ID `default`, and a random seed. That address then becomes the first list entry, so the pin `750872a6…` is checked against it. Threatray's IOC list gives 2.26.51[.]12 as this file's C2, which is what that reading predicts. With a random seed, the panel can't read anything this agent sends.
+- a string containing `|` goes to one routine;
+- a string containing `:` goes to another, which passes the seed slot's current value as the key;
+- anything else goes to the old hex-and-`NIK` routine.
+
+The `|` routine splits into three parts and Base64-decodes each with `StdEncoding`. It passes part one straight to a function that accepts only 16-, 24- or 32-byte keys (`aes.NewCipher`; its length switch is the giveaway). Then CBC with part two as the IV. There is no RSA step. A 256-byte key fails, and the routine returns an empty string.
+
+The seed fares no better. When `init` decodes the seed slot, the key it passes is the seed slot's own 133-character encoded string, and `aes.NewCipher` rejects that too.
+
+So, on my reading, all five protected fields decode to empty, and `main.main`'s defaults take over: primary C2 `hxxps://2.26.51[.]12:443`, user ID `default`, and a random seed. That address then becomes the first list entry, so the pin `750872a6…` is checked against it. Threatray's IOC list gives 2.26.51[.]12 as this file's C2, which is what that reading predicts. With a random seed, the panel can't read anything this agent sends.
 
 My guess is a builder that started wrapping keys before the agent template learned to unwrap them. Whatever the reason, the build's real C2 is the 32-byte ciphertext in the first field, and without knowing what the panel meant the 256-byte part to be, it stays there.
 
 ## Two wrappers
 
-`46bea5c1` is a PyInstaller bundle (Python 3.11) whose entry script, `stub`, is 9,425,098 bytes after decompression. It holds three Base64 strings and writes them to a temporary folder: `Installer.exe`, `Loader.exe` and `_fair_Fair (4).txt`. `Loader.exe` is byte-for-byte agent `e7f51534`. `Installer.exe` (`161fedd7…`, not on MalwareBazaar) is a .NET form named `NewLoaderInstaller` whose strings are a fake cheat menu for the game Rust: `AIMBOT`, `VISUALS`, `[ Loader ] demo dummy v1.2.3`, a `CoolBypass.dll` check. The text file reads `GAME VERIFYED CHECK!` followed by `CLIENT SEED`, `HASH` and two `SALT` lines, all `undefined`, the vocabulary of "provably fair" gambling sites. The lure is aimed at players.
+`46bea5c1` is a PyInstaller bundle (Python 3.11) whose entry script, `stub`, is 9,425,098 bytes after decompression. It holds three Base64 strings and writes them to a temporary folder: `Installer.exe`, `Loader.exe` and `_fair_Fair (4).txt`. `Loader.exe` is byte-for-byte agent `e7f51534`.
 
-`9d9d9901` is a .NET packer whose own strings call it FileCrypt; its error messages and self-test descriptions are in Russian. The payload is appended to the stub with an 8-byte footer, `<length> "FCX1"`. The blob starts with `SX11`, a 16-byte salt, two 12-byte nonces and a 4-byte ciphertext length, and is encrypted twice: AES-256-GCM inside, ChaCha20-Poly1305 outside, both with associated data `"SX11" || salt`, under keys derived by HKDF-SHA256 from a master key that the packer's code embeds as a Base64 constant (`4jVQKr…`) with the infos `SX11-AES-256-GCM` and `SX11-CHACHA20-POLY1305`. The packer implements GCM and ChaCha20-Poly1305 itself; Python's `cryptography` verifies both tags, so they're standard. Inside is `client (15).exe`, gzip-compressed, which is agent `876b1dbc`. That explains why Threatray's sandbox tied a .NET file to 191.44.109[.]125.
+`Installer.exe` (`161fedd7…`, not on MalwareBazaar) is a .NET form named `NewLoaderInstaller` whose strings are a fake cheat menu for the game Rust: `AIMBOT`, `VISUALS`, `[ Loader ] demo dummy v1.2.3`, a `CoolBypass.dll` check. The text file reads `GAME VERIFYED CHECK!` followed by `CLIENT SEED`, `HASH` and two `SALT` lines, all `undefined`, the vocabulary of "provably fair" gambling sites. The lure is aimed at players.
+
+`9d9d9901` is a .NET packer whose own strings call it FileCrypt; its error messages and self-test descriptions are in Russian. The payload is appended to the stub with an 8-byte footer, `<length> "FCX1"`.
+
+The blob starts with `SX11`, a 16-byte salt, two 12-byte nonces and a 4-byte ciphertext length. It is encrypted twice: AES-256-GCM inside, ChaCha20-Poly1305 outside, both with associated data `"SX11" || salt`. The keys are derived by HKDF-SHA256, with the infos `SX11-AES-256-GCM` and `SX11-CHACHA20-POLY1305`, from a master key that the packer's code embeds as a Base64 constant (`4jVQKr…`).
+
+The packer implements GCM and ChaCha20-Poly1305 itself; Python's `cryptography` verifies both tags, so they're standard. Inside is `client (15).exe`, gzip-compressed, which is agent `876b1dbc`. That explains why Threatray's sandbox tied a .NET file to 191.44.109[.]125.
 
 ## The extractor
 
-[`families/nikc2/extract.py`](https://github.com/stateless-re/tools/tree/main/families/nikc2) finds the config block from the Go string headers in `.data`, derives the XOR key from the known plaintext at the start of the C2 URL (its `https` scheme) instead of assuming `NIK`, and prints the decoded fields, the AES key, the pin, the flags, the server-list global and the fallback. It finds the decoder by its in-place call pattern instead of by name, so it works on the symbol-less builds, and it unwraps FileCrypt and the PyInstaller binder in memory (`-o DIR` writes the inner files). For a v2 build it reports the shape of each protected field. Abridged output for `ae38f118`, with the URLs defanged:
+[`families/nikc2/extract.py`](https://github.com/stateless-re/tools/tree/main/families/nikc2) finds the config block from the Go string headers in `.data`. It derives the XOR key from the known plaintext at the start of the C2 URL (its `https` scheme) instead of assuming `NIK`. Then it prints the decoded fields, the AES key, the pin, the flags, the server-list global and the fallback.
+
+It finds the decoder by its in-place call pattern instead of by name, so it works on the symbol-less builds. It also unwraps FileCrypt and the PyInstaller binder in memory (`-o DIR` writes the inner files). For a v2 build it reports the shape of each protected field. Abridged output for `ae38f118`, with the URLs defanged:
 
 ```json
 {

