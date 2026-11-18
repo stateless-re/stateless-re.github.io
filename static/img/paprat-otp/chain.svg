@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="fig" width="286" height="747" viewBox="0 0 286 747" style="max-width:286px">
+<rect x="0" y="0" width="286" height="747" rx="6" class="fig-bg" fill="#eef1f8"/>
+<defs>
+<marker id="chainsvg-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="fig-head" fill="#4b5580"/></marker>
+<marker id="chainsvg-ok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="fig-c2" fill="#2d6a1f"/></marker>
+<marker id="chainsvg-no" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="fig-c6" fill="#a2245b"/></marker>
+</defs>
+<path d="M142.8,83.5 L142.8,137.5" class="fig-line" fill="none" stroke="#4b5580" stroke-width="1.5" marker-end="url(#chainsvg-a)"/>
+<path d="M142.8,201.0 L142.8,255.0" class="fig-line" fill="none" stroke="#4b5580" stroke-width="1.5" marker-end="url(#chainsvg-a)"/>
+<path d="M142.8,337.0 L142.8,391.0" class="fig-line" fill="none" stroke="#4b5580" stroke-width="1.5" marker-end="url(#chainsvg-a)"/>
+<path d="M142.8,473.0 L142.8,527.0" class="fig-line" fill="none" stroke="#4b5580" stroke-width="1.5" marker-end="url(#chainsvg-a)"/>
+<path d="M142.8,609.0 L142.8,663.0" class="fig-line" fill="none" stroke="#4b5580" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#chainsvg-a)"/>
+<rect x="89.2" y="100.9" width="107.2" height="19.2" rx="3" class="fig-bg" fill="#eef1f8"/>
+<text x="142.8" y="114.7" font-size="12" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" text-anchor="middle" fill="#4b5580" class="fig-soft">mounted, opened</text>
+<rect x="82.7" y="218.4" width="120.2" height="19.2" rx="3" class="fig-bg" fill="#eef1f8"/>
+<text x="142.8" y="232.2" font-size="12" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" text-anchor="middle" fill="#4b5580" class="fig-soft">runs, opens decoy</text>
+<rect x="66.5" y="354.4" width="152.6" height="19.2" rx="3" class="fig-bg" fill="#eef1f8"/>
+<text x="142.8" y="368.2" font-size="12" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" text-anchor="middle" fill="#4b5580" class="fig-soft">runs from Binary table</text>
+<rect x="79.4" y="490.4" width="126.6" height="19.2" rx="3" class="fig-bg" fill="#eef1f8"/>
+<text x="142.8" y="504.2" font-size="12" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" text-anchor="middle" fill="#4b5580" class="fig-soft">JSON poll, 10-19 s</text>
+<rect x="21.1" y="626.4" width="243.3" height="19.2" rx="3" class="fig-bg" fill="#eef1f8"/>
+<text x="142.8" y="640.2" font-size="12" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" text-anchor="middle" fill="#4b5580" class="fig-soft">DWW download (chain 3, per Fortinet)</text>
+<rect x="35.0" y="20.0" width="215.5" height="63.5" rx="5" class="fig-box" fill="#fafbfd" stroke="#d3d9e8" stroke-width="1.25"/>
+<text x="142.8" y="46.8" font-size="15" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="middle" fill="#18224a">Disk image lure</text>
+<text x="142.8" y="67.6" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">Letter from the ... .vhdx</text>
+<rect x="20.0" y="137.5" width="245.5" height="63.5" rx="5" class="fig-box" fill="#fafbfd" stroke="#d3d9e8" stroke-width="1.25"/>
+<text x="142.8" y="164.2" font-size="15" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="middle" fill="#18224a">Shortcut</text>
+<text x="142.8" y="185.1" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">cmd /c Visa_Details.msi &amp; ...</text>
+<rect x="50.0" y="255.0" width="185.5" height="82.0" rx="5" class="fig-box" fill="#fafbfd" stroke="#d3d9e8" stroke-width="1.25"/>
+<text x="142.8" y="281.8" font-size="15" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="middle" fill="#18224a">MSI installer</text>
+<text x="142.8" y="302.6" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">CustomAction type 194</text>
+<text x="142.8" y="321.1" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">Binary._2E9D1C8B...</text>
+<rect x="42.5" y="391.0" width="200.5" height="82.0" rx="5" class="fig-hot" fill="#fafbfd" stroke="#1f4fc4" stroke-width="2"/>
+<text x="142.8" y="417.8" font-size="15" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="middle" fill="#18224a">PapRAT (C++)</text>
+<text x="142.8" y="438.6" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">bruzsvc.exe, Boost.Asio</text>
+<text x="142.8" y="457.1" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">XOR 0x50 config</text>
+<rect x="23.8" y="527.0" width="238.0" height="82.0" rx="5" class="fig-box" fill="#fafbfd" stroke="#d3d9e8" stroke-width="1.25"/>
+<text x="142.8" y="553.8" font-size="15" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="middle" fill="#18224a">C2 over HTTP</text>
+<text x="142.8" y="574.6" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">www.rivingtonclarks[.]com:80</text>
+<text x="142.8" y="593.1" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">/beautiQuewonders/banaNa.php</text>
+<rect x="38.8" y="663.0" width="208.0" height="63.5" rx="5" class="fig-box" fill="#fafbfd" stroke="#d3d9e8" stroke-width="1.25"/>
+<text x="142.8" y="689.8" font-size="15" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="middle" fill="#18224a">WmRAT</text>
+<text x="142.8" y="710.6" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">netmansrvdns[.]com:39186</text>
+</svg>
