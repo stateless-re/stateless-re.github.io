@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="fig" width="620" height="296" viewBox="0 0 620 296" style="max-width:620px;min-width:496px">
+<rect x="0" y="0" width="620" height="296" rx="6" class="fig-bg" fill="#eef1f8"/>
+<text x="74.0" y="30.0" font-size="12" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="start" fill="#626b92" class="fig-dim mono">+0</text>
+<text x="250.0" y="30.0" font-size="12" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="start" fill="#626b92" class="fig-dim mono">+4</text>
+<text x="426.0" y="30.0" font-size="12" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="start" fill="#626b92" class="fig-dim mono">+8</text>
+<rect x="73.0" y="38.0" width="174.0" height="62.0" rx="4" class="fig-c1 fig-tint" fill="#1f4fc4" stroke="#1f4fc4" stroke-width="1.25" fill-opacity="0.16"/>
+<text x="78.0" y="60.0" font-size="13" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="start" fill="#18224a">magic</text>
+<text x="78.0" y="80.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="start" fill="#4b5580" class="fig-soft mono">PRO1</text>
+<rect x="249.0" y="38.0" width="42.0" height="62.0" rx="4" class="fig-c2 fig-tint" fill="#2d6a1f" stroke="#2d6a1f" stroke-width="1.25" fill-opacity="0.16"/>
+<text x="254.0" y="60.0" font-size="13" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="start" fill="#18224a">ver</text>
+<text x="254.0" y="80.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="start" fill="#4b5580" class="fig-soft mono">01</text>
+<rect x="293.0" y="38.0" width="42.0" height="62.0" rx="4" class="fig-c3 fig-tint" fill="#a33f00" stroke="#a33f00" stroke-width="1.25" fill-opacity="0.16"/>
+<text x="298.0" y="60.0" font-size="13" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="start" fill="#18224a">type</text>
+<text x="298.0" y="80.0" font-size="11.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="start" fill="#4b5580" class="fig-soft mono">[1]</text>
+<rect x="337.0" y="38.0" width="86.0" height="62.0" rx="4" class="fig-c4 fig-tint" fill="#6b2fb3" stroke="#6b2fb3" stroke-width="1.25" fill-opacity="0.16"/>
+<text x="342.0" y="60.0" font-size="13" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="start" fill="#18224a">flags</text>
+<text x="342.0" y="80.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="start" fill="#4b5580" class="fig-soft mono">Flags</text>
+<rect x="425.0" y="38.0" width="174.0" height="62.0" rx="4" class="fig-c5 fig-tint" fill="#0a6b73" stroke="#0a6b73" stroke-width="1.25" fill-opacity="0.16"/>
+<text x="430.0" y="60.0" font-size="13" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="start" fill="#18224a">sid</text>
+<text x="430.0" y="80.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="start" fill="#4b5580" class="fig-soft mono">SessionId</text>
+<rect x="73.0" y="110.0" width="174.0" height="62.0" rx="4" class="fig-c5 fig-tint" fill="#0a6b73" stroke="#0a6b73" stroke-width="1.25" fill-opacity="0.16"/>
+<text x="78.0" y="132.0" font-size="12" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" text-anchor="start" fill="#626b92" class="fig-dim">sid (cont.)</text>
+<rect x="249.0" y="110.0" width="174.0" height="62.0" rx="4" class="fig-c6 fig-tint" fill="#a2245b" stroke="#a2245b" stroke-width="1.25" fill-opacity="0.16"/>
+<text x="254.0" y="132.0" font-size="13" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="start" fill="#18224a">msgid</text>
+<text x="254.0" y="152.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="start" fill="#4b5580" class="fig-soft mono">MsgId</text>
+<rect x="425.0" y="110.0" width="174.0" height="62.0" rx="4" class="fig-c1 fig-tint" fill="#1f4fc4" stroke="#1f4fc4" stroke-width="1.25" fill-opacity="0.16"/>
+<text x="430.0" y="132.0" font-size="13" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="start" fill="#18224a">seq</text>
+<text x="430.0" y="152.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="start" fill="#4b5580" class="fig-soft mono">Seq</text>
+<rect x="73.0" y="182.0" width="174.0" height="62.0" rx="4" class="fig-c2 fig-tint" fill="#2d6a1f" stroke="#2d6a1f" stroke-width="1.25" fill-opacity="0.16"/>
+<text x="78.0" y="204.0" font-size="13" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="start" fill="#18224a">total</text>
+<text x="78.0" y="224.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="start" fill="#4b5580" class="fig-soft mono">Total</text>
+<rect x="249.0" y="182.0" width="174.0" height="62.0" rx="4" class="fig-c3 fig-tint" fill="#a33f00" stroke="#a33f00" stroke-width="1.25" fill-opacity="0.16"/>
+<text x="254.0" y="204.0" font-size="13" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="start" fill="#18224a">len</text>
+<text x="254.0" y="224.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="start" fill="#4b5580" class="fig-soft mono">PayloadLen</text>
+<rect x="425.0" y="182.0" width="174.0" height="62.0" rx="4" class="fig-c4 fig-tint" fill="#6b2fb3" stroke="#6b2fb3" stroke-width="1.25" fill-opacity="0.16"/>
+<text x="430.0" y="204.0" font-size="13" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="start" fill="#18224a">hcrc</text>
+<text x="430.0" y="224.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="start" fill="#4b5580" class="fig-soft mono">CRC32(0x00-0x1F)</text>
+<text x="64.0" y="73.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="end" fill="#626b92" class="fig-dim mono">0x00</text>
+<text x="64.0" y="145.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="end" fill="#626b92" class="fig-dim mono">0x0C</text>
+<text x="64.0" y="217.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="end" fill="#626b92" class="fig-dim mono">0x18</text>
+<text x="72.0" y="274.0" font-size="13" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="start" fill="#18224a">1  type</text>
+<text x="136.1" y="274.0" font-size="11.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="start" fill="#4b5580" class="fig-soft mono">MsgType</text>
+</svg>

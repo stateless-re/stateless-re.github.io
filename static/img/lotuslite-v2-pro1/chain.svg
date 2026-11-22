@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="fig" width="338" height="765" viewBox="0 0 338 765" style="max-width:338px">
+<rect x="0" y="0" width="338" height="765" rx="6" class="fig-bg" fill="#eef1f8"/>
+<defs>
+<marker id="chainsvg-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="fig-head" fill="#4b5580"/></marker>
+<marker id="chainsvg-ok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="fig-c2" fill="#2d6a1f"/></marker>
+<marker id="chainsvg-no" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="fig-c6" fill="#a2245b"/></marker>
+</defs>
+<path d="M169.0,83.5 L169.0,137.5" class="fig-line" fill="none" stroke="#4b5580" stroke-width="1.5" marker-end="url(#chainsvg-a)"/>
+<path d="M169.0,201.0 L169.0,255.0" class="fig-line" fill="none" stroke="#4b5580" stroke-width="1.5" marker-end="url(#chainsvg-a)"/>
+<path d="M169.0,318.5 L169.0,372.5" class="fig-line" fill="none" stroke="#4b5580" stroke-width="1.5" marker-end="url(#chainsvg-a)"/>
+<path d="M169.0,473.0 L169.0,527.0" class="fig-line" fill="none" stroke="#4b5580" stroke-width="1.5" marker-end="url(#chainsvg-a)"/>
+<path d="M169.0,609.0 L169.0,663.0" class="fig-line" fill="none" stroke="#4b5580" stroke-width="1.5" marker-end="url(#chainsvg-a)"/>
+<rect x="102.4" y="100.9" width="133.1" height="19.2" rx="3" class="fig-bg" fill="#eef1f8"/>
+<text x="169.0" y="114.7" font-size="12" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" text-anchor="middle" fill="#4b5580" class="fig-soft">user opens the .exe</text>
+<rect x="83.0" y="218.4" width="172.0" height="19.2" rx="3" class="fig-bg" fill="#eef1f8"/>
+<text x="169.0" y="232.2" font-size="12" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" text-anchor="middle" fill="#4b5580" class="fig-soft">CLR loads from app folder</text>
+<rect x="96.0" y="335.9" width="146.1" height="19.2" rx="3" class="fig-bg" fill="#eef1f8"/>
+<text x="169.0" y="349.7" font-size="12" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" text-anchor="middle" fill="#4b5580" class="fig-soft">first run, then exits</text>
+<rect x="79.8" y="490.4" width="178.5" height="19.2" rx="3" class="fig-bg" fill="#eef1f8"/>
+<text x="169.0" y="504.2" font-size="12" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" text-anchor="middle" fill="#4b5580" class="fig-soft">RegExt.exe from DeviceSync</text>
+<rect x="50.6" y="626.4" width="236.8" height="19.2" rx="3" class="fig-bg" fill="#eef1f8"/>
+<text x="169.0" y="640.2" font-size="12" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" text-anchor="middle" fill="#4b5580" class="fig-soft">login, then cmd.exe and file writes</text>
+<rect x="50.0" y="20.0" width="238.0" height="63.5" rx="5" class="fig-box" fill="#fafbfd" stroke="#d3d9e8" stroke-width="1.25"/>
+<text x="169.0" y="46.8" font-size="15" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="middle" fill="#18224a">Lure archive</text>
+<text x="169.0" y="67.6" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">Integrated_Assessment_...zip</text>
+<rect x="20.0" y="137.5" width="298.0" height="63.5" rx="5" class="fig-box" fill="#fafbfd" stroke="#d3d9e8" stroke-width="1.25"/>
+<text x="169.0" y="164.2" font-size="15" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="middle" fill="#18224a">Signed PDFgear RegExt.exe</text>
+<text x="169.0" y="185.1" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">renamed Integrated_Assessment_...exe</text>
+<rect x="42.5" y="255.0" width="253.0" height="63.5" rx="5" class="fig-hot" fill="#fafbfd" stroke="#1f4fc4" stroke-width="2"/>
+<text x="169.0" y="281.8" font-size="15" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="middle" fill="#18224a">Fake CommonLib.dll</text>
+<text x="169.0" y="302.6" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">SqliteUtils.InitializeDatabase</text>
+<rect x="35.0" y="372.5" width="268.0" height="100.5" rx="5" class="fig-box" fill="#fafbfd" stroke="#d3d9e8" stroke-width="1.25"/>
+<text x="169.0" y="399.2" font-size="15" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="middle" fill="#18224a">Copy and relaunch</text>
+<text x="169.0" y="420.1" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">ProgramData\Microsoft\DeviceSync</text>
+<text x="169.0" y="438.6" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">Run / Windows\Load</text>
+<text x="169.0" y="457.1" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">parent: explorer.exe</text>
+<rect x="42.5" y="527.0" width="253.0" height="82.0" rx="5" class="fig-hot" fill="#fafbfd" stroke="#1f4fc4" stroke-width="2"/>
+<text x="169.0" y="553.8" font-size="15" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="middle" fill="#18224a">Second run</text>
+<text x="169.0" y="574.6" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">mutex PDFgear_DeviceSync_Mutex</text>
+<text x="169.0" y="593.1" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">RSA-wrapped AES-256-GCM key</text>
+<rect x="38.8" y="663.0" width="260.5" height="82.0" rx="5" class="fig-box" fill="#fafbfd" stroke="#d3d9e8" stroke-width="1.25"/>
+<text x="169.0" y="689.8" font-size="15" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="middle" fill="#18224a">C2</text>
+<text x="169.0" y="710.6" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">UDP/53 raw PRO1 frames</text>
+<text x="169.0" y="729.1" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">wss://IP:443,80,22,21,8080,1080</text>
+</svg>
