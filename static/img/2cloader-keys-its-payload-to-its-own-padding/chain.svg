@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="fig" width="316" height="710" viewBox="0 0 316 710" style="max-width:316px">
+<rect x="0" y="0" width="316" height="710" rx="6" class="fig-bg" fill="#eef1f8"/>
+<defs>
+<marker id="chainsvg-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="fig-head" fill="#4b5580"/></marker>
+<marker id="chainsvg-ok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="fig-c2" fill="#2d6a1f"/></marker>
+<marker id="chainsvg-no" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="fig-c6" fill="#a2245b"/></marker>
+</defs>
+<path d="M157.8,83.5 L157.8,137.5" class="fig-line" fill="none" stroke="#4b5580" stroke-width="1.5" marker-end="url(#chainsvg-a)"/>
+<path d="M157.8,201.0 L157.8,255.0" class="fig-line" fill="none" stroke="#4b5580" stroke-width="1.5" marker-end="url(#chainsvg-a)"/>
+<path d="M157.8,337.0 L157.8,391.0" class="fig-line" fill="none" stroke="#4b5580" stroke-width="1.5" marker-end="url(#chainsvg-a)"/>
+<path d="M157.8,454.5 L157.8,508.5" class="fig-line" fill="none" stroke="#4b5580" stroke-width="1.5" marker-end="url(#chainsvg-a)"/>
+<path d="M157.8,572.0 L157.8,626.0" class="fig-line" fill="none" stroke="#4b5580" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#chainsvg-a)"/>
+<rect x="139.8" y="100.9" width="35.9" height="19.2" rx="3" class="fig-bg" fill="#eef1f8"/>
+<text x="157.8" y="114.7" font-size="12" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" text-anchor="middle" fill="#4b5580" class="fig-soft">body</text>
+<rect x="65.3" y="471.9" width="185.0" height="19.2" rx="3" class="fig-bg" fill="#eef1f8"/>
+<text x="157.8" y="485.7" font-size="12" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" text-anchor="middle" fill="#4b5580" class="fig-soft">hooks first if option 0x400</text>
+<rect x="62.0" y="589.4" width="191.4" height="19.2" rx="3" class="fig-bg" fill="#eef1f8"/>
+<text x="157.8" y="603.2" font-size="12" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" text-anchor="middle" fill="#4b5580" class="fig-soft">stage reports, reply ignored</text>
+<rect x="50.0" y="20.0" width="215.5" height="63.5" rx="5" class="fig-box" fill="#fafbfd" stroke="#d3d9e8" stroke-width="1.25"/>
+<text x="157.8" y="46.8" font-size="15" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="middle" fill="#18224a">Resource 88/521</text>
+<text x="157.8" y="67.6" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">config in last 0xDC bytes</text>
+<rect x="20.0" y="137.5" width="275.5" height="63.5" rx="5" class="fig-box" fill="#fafbfd" stroke="#d3d9e8" stroke-width="1.25"/>
+<text x="157.8" y="164.2" font-size="15" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="middle" fill="#18224a">Two XOR layers</text>
+<text x="157.8" y="185.1" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">start 0x66; start 0x65, step 0x64</text>
+<rect x="38.8" y="255.0" width="238.0" height="82.0" rx="5" class="fig-hot" fill="#fafbfd" stroke="#1f4fc4" stroke-width="2"/>
+<text x="157.8" y="281.8" font-size="15" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="middle" fill="#18224a">AES-256-GCM</text>
+<text x="157.8" y="302.6" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">key = SHA-256(.text) ^ masks</text>
+<text x="157.8" y="321.1" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">byte sum must match 0x50</text>
+<rect x="27.5" y="391.0" width="260.5" height="63.5" rx="5" class="fig-box" fill="#fafbfd" stroke="#d3d9e8" stroke-width="1.25"/>
+<text x="157.8" y="417.8" font-size="15" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="middle" fill="#18224a">Xpress Huffman</text>
+<text x="157.8" y="438.6" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">RtlDecompressBufferEx, format 4</text>
+<rect x="31.2" y="508.5" width="253.0" height="63.5" rx="5" class="fig-box" fill="#fafbfd" stroke="#d3d9e8" stroke-width="1.25"/>
+<text x="157.8" y="535.2" font-size="15" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="middle" fill="#18224a">Payload PE</text>
+<text x="157.8" y="556.1" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">mapped in the loader&#x27;s process</text>
+<rect x="27.5" y="626.0" width="260.5" height="63.5" rx="5" class="fig-box" fill="#fafbfd" stroke="#d3d9e8" stroke-width="1.25"/>
+<text x="157.8" y="652.8" font-size="15" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="middle" fill="#18224a">Telemetry, one-way</text>
+<text x="157.8" y="673.6" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">POST aware-cr1[.]com/api/beacon</text>
+</svg>

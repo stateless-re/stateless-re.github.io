@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="fig" width="736" height="1132" viewBox="0 0 736 1132" style="max-width:736px;min-width:588px">
+<rect x="0" y="0" width="736" height="1132" rx="6" class="fig-bg" fill="#eef1f8"/>
+<text x="74.0" y="30.0" font-size="12" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="start" fill="#626b92" class="fig-dim mono">+0</text>
+<text x="235.0" y="30.0" font-size="12" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="start" fill="#626b92" class="fig-dim mono">+4</text>
+<text x="396.0" y="30.0" font-size="12" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="start" fill="#626b92" class="fig-dim mono">+8</text>
+<text x="557.0" y="30.0" font-size="12" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="start" fill="#626b92" class="fig-dim mono">+C</text>
+<rect x="73.0" y="38.0" width="159.0" height="62.0" rx="4" class="fig-c1 fig-tint" fill="#1f4fc4" stroke="#1f4fc4" stroke-width="1.25" fill-opacity="0.16"/>
+<text x="78.0" y="60.0" font-size="13" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="start" fill="#18224a">magic</text>
+<text x="78.0" y="80.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="start" fill="#4b5580" class="fig-soft mono">2C 3D 4E 5F</text>
+<rect x="234.0" y="38.0" width="159.0" height="62.0" rx="4" class="fig-c2 fig-tint" fill="#2d6a1f" stroke="#2d6a1f" stroke-width="1.25" fill-opacity="0.16"/>
+<text x="239.0" y="60.0" font-size="13" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="start" fill="#18224a">fl</text>
+<text x="239.0" y="80.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="start" fill="#4b5580" class="fig-soft mono">0</text>
+<rect x="395.0" y="38.0" width="159.0" height="62.0" rx="4" class="fig-c3 fig-tint" fill="#a33f00" stroke="#a33f00" stroke-width="1.25" fill-opacity="0.16"/>
+<text x="400.0" y="60.0" font-size="13" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="start" fill="#18224a">enc_size</text>
+<text x="400.0" y="80.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="start" fill="#4b5580" class="fig-soft mono">515731</text>
+<rect x="556.0" y="38.0" width="159.0" height="62.0" rx="4" class="fig-c4 fig-tint" fill="#6b2fb3" stroke="#6b2fb3" stroke-width="1.25" fill-opacity="0.16"/>
+<text x="561.0" y="60.0" font-size="13" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="start" fill="#18224a">nonce_sz</text>
+<text x="561.0" y="80.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="start" fill="#4b5580" class="fig-soft mono">12</text>
+<rect x="73.0" y="110.0" width="159.0" height="62.0" rx="4" class="fig-c5 fig-tint" fill="#0a6b73" stroke="#0a6b73" stroke-width="1.25" fill-opacity="0.16"/>
+<text x="78.0" y="132.0" font-size="13" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="start" fill="#18224a">tag_sz</text>
+<text x="78.0" y="152.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="start" fill="#4b5580" class="fig-soft mono">16</text>
+<rect x="234.0" y="110.0" width="481.0" height="62.0" rx="4" class="fig-c6 fig-tint" fill="#a2245b" stroke="#a2245b" stroke-width="1.25" fill-opacity="0.16"/>
+<text x="239.0" y="132.0" font-size="13" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="start" fill="#18224a">nonce</text>
+<text x="239.0" y="152.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="start" fill="#4b5580" class="fig-soft mono">d6736f52a855...</text>
+<rect x="73.0" y="182.0" width="642.0" height="62.0" rx="4" class="fig-c1 fig-tint" fill="#1f4fc4" stroke="#1f4fc4" stroke-width="1.25" fill-opacity="0.16"/>
+<text x="78.0" y="204.0" font-size="13" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="start" fill="#18224a">GCM_tag</text>
+<text x="78.0" y="224.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="start" fill="#4b5580" class="fig-soft mono">e880b363c85d5c9b...</text>
+<rect x="73.0" y="254.0" width="642.0" height="62.0" rx="4" class="fig-c2 fig-tint" fill="#2d6a1f" stroke="#2d6a1f" stroke-width="1.25" fill-opacity="0.16"/>
+<text x="78.0" y="276.0" font-size="13" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="start" fill="#18224a">key_mask_lo</text>
+<text x="78.0" y="296.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="start" fill="#4b5580" class="fig-soft mono">b516699fc392f936...</text>
+<rect x="73.0" y="326.0" width="642.0" height="62.0" rx="4" class="fig-c3 fig-tint" fill="#a33f00" stroke="#a33f00" stroke-width="1.25" fill-opacity="0.16"/>
+<text x="78.0" y="348.0" font-size="13" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="start" fill="#18224a">key_mask_hi</text>
+<text x="78.0" y="368.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="start" fill="#4b5580" class="fig-soft mono">931eda37165676f5...</text>
+<rect x="73.0" y="398.0" width="159.0" height="62.0" rx="4" class="fig-c4 fig-tint" fill="#6b2fb3" stroke="#6b2fb3" stroke-width="1.25" fill-opacity="0.16"/>
+<text x="78.0" y="420.0" font-size="13" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="start" fill="#18224a">key_sum</text>
+<text x="78.0" y="440.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="start" fill="#4b5580" class="fig-soft mono">0x1159</text>
+<rect x="234.0" y="398.0" width="159.0" height="62.0" rx="4" class="fig-c5 fig-tint" fill="#0a6b73" stroke="#0a6b73" stroke-width="1.25" fill-opacity="0.16"/>
+<text x="239.0" y="420.0" font-size="13" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="start" fill="#18224a">persist</text>
+<text x="239.0" y="440.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="start" fill="#4b5580" class="fig-soft mono">0x3f</text>
+<rect x="395.0" y="398.0" width="159.0" height="62.0" rx="4" class="fig-c6 fig-tint" fill="#a2245b" stroke="#a2245b" stroke-width="1.25" fill-opacity="0.16"/>
+<text x="400.0" y="420.0" font-size="13" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="start" fill="#18224a">options</text>
+<text x="400.0" y="440.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="start" fill="#4b5580" class="fig-soft mono">0x80</text>
+<rect x="556.0" y="398.0" width="159.0" height="62.0" rx="4" class="fig-c1 fig-tint" fill="#1f4fc4" stroke="#1f4fc4" stroke-width="1.25" fill-opacity="0.16"/>
+<text x="561.0" y="420.0" font-size="13" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="start" fill="#18224a">drop_sz</text>
+<text x="561.0" y="440.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="start" fill="#4b5580" class="fig-soft mono">0</text>
+<rect x="73.0" y="470.0" width="159.0" height="62.0" rx="4" class="fig-c2 fig-tint" fill="#2d6a1f" stroke="#2d6a1f" stroke-width="1.25" fill-opacity="0.16"/>
+<text x="78.0" y="492.0" font-size="13" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="start" fill="#18224a">msgbox_sz</text>
+<text x="78.0" y="512.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="start" fill="#4b5580" class="fig-soft mono">0</text>
+<rect x="234.0" y="470.0" width="38.2" height="62.0" rx="4" class="fig-c3 fig-tint" fill="#a33f00" stroke="#a33f00" stroke-width="1.25" fill-opacity="0.16"/>
+<text x="253.1" y="506.0" font-size="13" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="middle" fill="#18224a">1</text>
+<rect x="274.2" y="470.0" width="38.2" height="62.0" rx="4" class="fig-c4 fig-tint" fill="#6b2fb3" stroke="#6b2fb3" stroke-width="1.25" fill-opacity="0.16"/>
+<text x="293.4" y="506.0" font-size="13" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="middle" fill="#18224a">2</text>
+<rect x="314.5" y="470.0" width="38.2" height="62.0" rx="4" class="fig-c5 fig-tint" fill="#0a6b73" stroke="#0a6b73" stroke-width="1.25" fill-opacity="0.16"/>
+<text x="333.6" y="506.0" font-size="13" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="middle" fill="#18224a">3</text>
+<rect x="395.0" y="470.0" width="159.0" height="62.0" rx="4" class="fig-c6 fig-tint" fill="#a2245b" stroke="#a2245b" stroke-width="1.25" fill-opacity="0.16"/>
+<text x="400.0" y="492.0" font-size="13" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="start" fill="#18224a">sleep_ms</text>
+<text x="400.0" y="512.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="start" fill="#4b5580" class="fig-soft mono">0</text>
+<rect x="556.0" y="470.0" width="159.0" height="62.0" rx="4" class="fig-c1 fig-tint" fill="#1f4fc4" stroke="#1f4fc4" stroke-width="1.25" fill-opacity="0.16"/>
+<text x="561.0" y="492.0" font-size="13" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="start" fill="#18224a">build_id</text>
+<text x="561.0" y="512.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="start" fill="#4b5580" class="fig-soft mono">ae9f0bca47ec1659...</text>
+<rect x="73.0" y="542.0" width="481.0" height="62.0" rx="4" class="fig-c1 fig-tint" fill="#1f4fc4" stroke="#1f4fc4" stroke-width="1.25" fill-opacity="0.16"/>
+<text x="78.0" y="564.0" font-size="12" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" text-anchor="start" fill="#626b92" class="fig-dim">build_id (cont.)</text>
+<rect x="556.0" y="542.0" width="159.0" height="62.0" rx="4" class="fig-c2 fig-tint" fill="#2d6a1f" stroke="#2d6a1f" stroke-width="1.25" fill-opacity="0.16"/>
+<text x="561.0" y="564.0" font-size="13" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="start" fill="#18224a">injection_target</text>
+<text x="561.0" y="584.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="start" fill="#4b5580" class="fig-soft mono">dllhost.exe</text>
+<rect x="73.0" y="614.0" width="642.0" height="62.0" rx="4" class="fig-c2 fig-tint" fill="#2d6a1f" stroke="#2d6a1f" stroke-width="1.25" fill-opacity="0.16"/>
+<text x="78.0" y="636.0" font-size="12" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" text-anchor="start" fill="#626b92" class="fig-dim">injection_target (cont.)</text>
+<rect x="73.0" y="686.0" width="642.0" height="62.0" rx="4" class="fig-c2 fig-tint" fill="#2d6a1f" stroke="#2d6a1f" stroke-width="1.25" fill-opacity="0.16"/>
+<text x="78.0" y="708.0" font-size="12" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" text-anchor="start" fill="#626b92" class="fig-dim">injection_target (cont.)</text>
+<rect x="73.0" y="758.0" width="642.0" height="62.0" rx="4" class="fig-c2 fig-tint" fill="#2d6a1f" stroke="#2d6a1f" stroke-width="1.25" fill-opacity="0.16"/>
+<text x="78.0" y="780.0" font-size="12" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" text-anchor="start" fill="#626b92" class="fig-dim">injection_target (cont.)</text>
+<rect x="73.0" y="830.0" width="481.0" height="62.0" rx="4" class="fig-c2 fig-tint" fill="#2d6a1f" stroke="#2d6a1f" stroke-width="1.25" fill-opacity="0.16"/>
+<text x="78.0" y="852.0" font-size="12" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" text-anchor="start" fill="#626b92" class="fig-dim">injection_target (cont.)</text>
+<rect x="556.0" y="830.0" width="159.0" height="62.0" rx="4" class="fig-c3 fig-tint" fill="#a33f00" stroke="#a33f00" stroke-width="1.25" fill-opacity="0.16"/>
+<text x="561.0" y="852.0" font-size="13" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="start" fill="#18224a">bt</text>
+<text x="561.0" y="872.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="start" fill="#4b5580" class="fig-soft mono">1788090685</text>
+<rect x="73.0" y="902.0" width="642.0" height="62.0" rx="4" class="fig-c4 fig-tint" fill="#6b2fb3" stroke="#6b2fb3" stroke-width="1.25" fill-opacity="0.16"/>
+<text x="78.0" y="924.0" font-size="13" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="start" fill="#18224a">pn</text>
+<text x="78.0" y="944.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="start" fill="#4b5580" class="fig-soft mono">build_tbuild.exe</text>
+<rect x="234.0" y="974.0" width="159.0" height="62.0" rx="4" class="fig-c5 fig-tint" fill="#0a6b73" stroke="#0a6b73" stroke-width="1.25" fill-opacity="0.16"/>
+<text x="239.0" y="996.0" font-size="13" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="start" fill="#18224a">task_hours</text>
+<text x="239.0" y="1016.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="start" fill="#4b5580" class="fig-soft mono">7</text>
+<rect x="395.0" y="974.0" width="159.0" height="62.0" rx="4" class="fig-c6 fig-tint" fill="#a2245b" stroke="#a2245b" stroke-width="1.25" fill-opacity="0.16"/>
+<text x="400.0" y="996.0" font-size="13" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="start" fill="#18224a">unpacked_size</text>
+<text x="400.0" y="1016.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="start" fill="#4b5580" class="fig-soft mono">1357312</text>
+<text x="64.0" y="73.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="end" fill="#626b92" class="fig-dim mono">0x00</text>
+<text x="64.0" y="145.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="end" fill="#626b92" class="fig-dim mono">0x10</text>
+<text x="64.0" y="217.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="end" fill="#626b92" class="fig-dim mono">0x20</text>
+<text x="64.0" y="289.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="end" fill="#626b92" class="fig-dim mono">0x30</text>
+<text x="64.0" y="361.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="end" fill="#626b92" class="fig-dim mono">0x40</text>
+<text x="64.0" y="433.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="end" fill="#626b92" class="fig-dim mono">0x50</text>
+<text x="64.0" y="505.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="end" fill="#626b92" class="fig-dim mono">0x60</text>
+<text x="64.0" y="577.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="end" fill="#626b92" class="fig-dim mono">0x70</text>
+<text x="64.0" y="649.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="end" fill="#626b92" class="fig-dim mono">0x80</text>
+<text x="64.0" y="721.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="end" fill="#626b92" class="fig-dim mono">0x90</text>
+<text x="64.0" y="793.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="end" fill="#626b92" class="fig-dim mono">0xA0</text>
+<text x="64.0" y="865.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="end" fill="#626b92" class="fig-dim mono">0xB0</text>
+<text x="64.0" y="937.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="end" fill="#626b92" class="fig-dim mono">0xC0</text>
+<text x="64.0" y="1009.0" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="end" fill="#626b92" class="fig-dim mono">0xD0</text>
+<text x="72.0" y="1066.0" font-size="13" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="start" fill="#18224a">1  x2_step</text>
+<text x="158.4" y="1066.0" font-size="11.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="start" fill="#4b5580" class="fig-soft mono">189</text>
+<text x="72.0" y="1088.0" font-size="13" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="start" fill="#18224a">2  x2_start</text>
+<text x="165.9" y="1088.0" font-size="11.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="start" fill="#4b5580" class="fig-soft mono">32</text>
+<text x="72.0" y="1110.0" font-size="13" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="start" fill="#18224a">3  x1_start</text>
+<text x="165.9" y="1110.0" font-size="11.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="start" fill="#4b5580" class="fig-soft mono">195</text>
+</svg>
