@@ -8,6 +8,7 @@ sample:
   family: "x.cpe (XCPE botnet agent), build 6.6.0"
   sha256: "07b511a6f7715ccd2f77b5f51e4cf46542ccaada99564252711f4a142ac26179"
   source: "[Hybrid Analysis](https://www.hybrid-analysis.com/sample/07b511a6f7715ccd2f77b5f51e4cf46542ccaada99564252711f4a142ac26179)"
+scope: large
 toc: true
 ---
 
@@ -28,6 +29,10 @@ Google's Threat Intelligence Group [attributes the backdoor to the device maker 
 - Builds 6.5.0 and both 6.6.0 builds embed MzSDK, which runs downloaded plugin APKs inside an `x.cpe` process, under its UID. It runs only when the server config sets `adDevourUse`.
 - The MzSDK core asks `dcsdk.100ulife[.]com` for updates and plugins, encrypting with AES-256-ECB and a key in its constants. The domain is already on blocklists, but I found no description of the SDK.
 - In 6.8.x the SDK is gone, matching Google's account of modules moving into `com.abc.nexus`. Nexus 1.5.3 keeps a `DevourService` with the same default channel, `lx102`, and it starts `com.mm.a.moyu`.
+
+![Chain in 6.5.0 and 6.6.0: x.cpe posts its config request, the acs config switches on MzSDK, the shell loads the core from letu.jet, and the core polls dcsdk.100ulife[.]com for plugin APKs that run inside x.cpe with the system UID](/img/xcpe-mzsdk-loader/chain.svg "MzSDK inside x.cpe, from config flag to plugin")
+
+The highlighted shell is the part neither vendor report mentions. Everything below it runs inside `x.cpe`'s process, so a plugin gets the system UID without being installed.
 
 ## Eight builds, three signers
 
