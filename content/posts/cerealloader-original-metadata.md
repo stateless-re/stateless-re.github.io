@@ -8,30 +8,31 @@ sample:
   family: "CerealLoader (Turla Cereal toolset), Microsoft.Ceres.dll build"
   sha256: "41164eb06adc72b187edaf90d73ca73be729d4ebfdecf57d7398561136941651"
   source: "[Hybrid Analysis](https://www.hybrid-analysis.com/sample/41164eb06adc72b187edaf90d73ca73be729d4ebfdecf57d7398561136941651)"
+scope: medium
 toc: true
 ---
 
-Four of the five public CerealLoader builds still contain the code their author wrote before obfuscating it. In each of them ConfuserEx added a second, obfuscated copy of the .NET metadata in a section after the original ones and pointed the CLI header at it. But the original metadata root is still in `.rdata`, and most of the method bodies it points to are still in the original `.text`.
+Four of the five public CerealLoader builds still contain the code their author wrote before obfuscating it. ConfuserEx added an obfuscated copy of the .NET metadata in a new section and pointed the CLI header at it, but the original metadata and most of its method bodies are still in the file.
 
-Point a copy of the header back at it, and for the 2024 build ILSpy prints a method called `ManagedEntryPoint`, a helper called `Xor`, and the payload path as a plain string literal. In the two RC4 builds the original metadata also names a method `import_functions`, whose only job is to pad the import table. In one of them it lists the C++ string literals of a native hook that keeps SCCM's `CcmEval.exe` from ever exiting.
+Point a copy of the header back at it, and for the 2024 build ILSpy prints a method called `ManagedEntryPoint` and the payload path as a plain string literal. In one RC4 build it also lists the C++ string literals of a native hook that keeps SCCM's `CcmEval.exe` from ever exiting.
 
 CerealLoader is the loader in Cereal, the .NET toolset that [ESET attributed to Turla on November 10](https://www.welivesecurity.com/en/eset-research/exchange-for-breakfast-turlas-cereal-tricks-are-not-for-kids/) (Matías Porolli). Earlier work this post builds on:
 
-- ESET's white paper explains its trick: a native entry point and a VTableFixup slot run a managed method that no managed code calls. The paper shows the loader logic of one sample, as a screenshot.
-- ESET's [IoC list](https://github.com/eset/malware-ioc/tree/master/turla) has eleven CerealLoader hashes. Two are on MalwareBazaar and three more on Hybrid Analysis; none of the five is the build in ESET's screenshot.
-- R136a1 [said](https://x.com/TheEnergyStory/status/2120211882690933223) on the day of ESET's report that CerealLoader is C++/CLI, and published a [proof of concept](https://gist.github.com/TheEnergyStory/b4efad6170b06c5b3267c7e37927fa1d) of the technique.
+- ESET's white paper explains its trick: a native entry point and a VTableFixup slot run a managed method that no managed code calls.
+- ESET's [IoC list](https://github.com/eset/malware-ioc/tree/master/turla) has eleven CerealLoader hashes. Two are on MalwareBazaar and three more on Hybrid Analysis.
+- R136a1 [said](https://x.com/TheEnergyStory/status/2120211882690933223) that CerealLoader is C++/CLI, and published a [proof of concept](https://gist.github.com/TheEnergyStory/b4efad6170b06c5b3267c7e37927fa1d).
 
 ## What I found
 
-- Four builds keep their pre-ConfuserEx metadata. The names in it (`__m2mep@?ManagedEntryPoint@@$$FYAXXZ`, `__unep@?SleepEx@@$$J0YAKKH@Z`, `??_C@_09FLKFJBLM@ntdll?4dll@`) are MSVC C++/CLI symbols, which confirms what R136a1 said.
-- The five builds use four host and file pairs: VMware Tools (`version.dll`, payload `vmtools.dat`), SCCM's health check (`SensApi.dll`, `C:\Windows\CCM\SystemTemp`), `dbghelp.dll` (`C:\programdata\Microsoft\DRM`) and Exchange (`C:\ProgramData\Microsoft\Vault.fsc`). None of these paths is in ESET's paper or IoC list.
+- Four builds keep their pre-ConfuserEx metadata. The names in it are MSVC C++/CLI symbols, such as `__m2mep@?ManagedEntryPoint@@$$FYAXXZ`, which confirms what R136a1 said.
+- The five builds use four host and payload pairs, including VMware Tools and SCCM's health check. None of the payload paths is in ESET's paper or IoC list.
 - Payloads are XOR with a key prepended to the file (32 bytes in 2022, 255 in 2024 and 2025) or RC4 with a 256-byte key in the loader.
-- The `Microsoft.Ceres.dll` build runs only inside a process whose image name starts with `CcmEval`. It patches `NtTerminateProcess` to sleep forever and suspends every other thread before running its payload.
-- That build was linked with MSVC 14.50, so it is from late 2025 or later. Its PE timestamp is a reproducible-build hash, not a date.
+- The `Microsoft.Ceres.dll` build runs only inside `CcmEval`. It patches `NtTerminateProcess` to sleep forever and suspends every other thread before running its payload.
+- That build was linked with MSVC 14.50, so it is from late 2025 or later.
 
 ## Five builds, five hosts
 
-I read all five with pefile, capstone, dnfile, de4dot and ILSpy. All five are x64 DLLs with `COMIMAGE_FLAGS_NATIVE_ENTRYPOINT` (0x10) set in the CLI header. The table uses ESET's file names; the "proxies" column is the name in the export directory, where there is one. ESET's paper says that "the filenames noted in code comments, as well as the decryption key, vary between samples".
+All five are x64 DLLs with `COMIMAGE_FLAGS_NATIVE_ENTRYPOINT` (0x10) set in the CLI header. The table uses ESET's file names; the "proxies" column is the name in the export directory, where there is one.
 
 | Build | ESET name | Proxies | Payload file | Cipher |
 |---|---|---|---|---|
@@ -41,32 +42,26 @@ I read all five with pefile, capstone, dnfile, de4dot and ILSpy. All five are x6
 | `6119d25a` | Microsoft.Search.Platform.dll | dbghelp.dll, 248 exports | `C:\\programdata\\Microsoft\\DRM\\lAoH23.tmp` | RC4 |
 | `41164eb0` | Microsoft.Ceres.dll | SensApi.dll, 3 exports | `c:\\Windows\\CCM\\SystemTemp\\685713b14b62` | RC4 |
 
-The doubled backslashes are in the decrypted strings; Windows accepts them. Every proxy forwards all of its exports to an absolute path, `C:\Windows\System32\<name>.<export>`, so the real DLL keeps working. ESET's file names and the proxy names don't match for the last two builds. ESET's names are the build-output names (the debug directories point to `Microsoft.Search.Platform.pdb` and `Microsoft.Ceres.pdb`); I don't know which name each file had when it was loaded.
+The doubled backslashes are in the decrypted strings; Windows accepts them. Every proxy forwards all of its exports to `C:\Windows\System32\<name>.<export>`, so the real DLL keeps working. ESET's names for the last two builds are the build-output names from their debug directories; I don't know which name each file had when it was loaded.
 
-The other files each build touches:
-
-| Build | Error log | Other |
-|---|---|---|
-| `13fe1eb9` | none | pins itself with `LoadLibraryW` on its own path |
-| `241aac14` | none | |
-| `d3b6065e` | `C:\\ProgramData\\Microsoft\\MF\\4qqklzco.dat` | |
-| `6119d25a` | `C:\\programdata\\Microsoft\\DRM\\oInMT8la2r.tmp` | |
-| `41164eb0` | `c:\\Windows\\CCM\\SystemTemp\\685713b14b63` | native progress log `c:\WINDOWS\CCM\SystemTemp\68571` |
-
-The managed logic is the same in all five, and matches ESET's Figure 5: check the payload file exists, read it, decrypt it, `Assembly.Load` it, take the first exported type, call its first public method with no arguments. If anything throws, the builds with a log path write the exception text, encrypted, to the log path.
+The managed logic is the same in all five, and matches ESET's Figure 5: read the payload file, decrypt it, `Assembly.Load` it, and call the first method of its first exported type. If anything throws, three builds write the exception text, encrypted, to an error log (listed under Indicators).
 
 ## Looking for a string that wasn't there
 
-The first build I decoded completely was `241aac14`, the 2024 `version.dll`. Its only string is behind ConfuserEx's constants protection: a getter takes an integer ID, and a 64-byte field holds the data, XORed with a key from a xorshift generator and LZMA-compressed. I wrote a decoder for that, and it printed the VMware Tools path.
+The first build I decoded completely was `241aac14`, the 2024 `version.dll`. Its only string is behind ConfuserEx's constants protection: XORed with a xorshift key stream and LZMA-compressed. I wrote a decoder for that, and it printed the VMware Tools path.
 
-Then my extractor printed the same path a second time, as a plain string found in `.rdata`. I didn't believe it. I had already searched the file for `Vmware` and found nothing, so I assumed the extractor was reading the wrong buffer. The earlier search was the mistake: it was an ASCII search, and this copy is UTF-16. The bytes in front of it decide what it is:
+Then my extractor printed the same path a second time, as a plain string in `.rdata`. I had already searched the file for `Vmware` and found nothing, so I assumed the extractor was reading the wrong buffer. The search was the mistake: it was ASCII, and this copy is UTF-16. The bytes in front of it say what it is:
 
 ```hexdump {title="241aac14, file offset 0xc90 (RVA 0x3490)"}
 00000c90: 7665 7273 696f 6e2e 646c 6c00 0061 4300  version.dll..aC.
 00000ca0: 3a00 5c00 5000 7200 6f00 6700 7200 6100  :.\.P.r.o.g.r.a.
 ```
 
-`0x61` is 97: 48 UTF-16 characters plus one trailing flag byte. That is how the `#US` heap of .NET metadata stores a string literal. The active metadata of this file is at RVA 0xb598, in a `.text` section at the end of the file. A second metadata root, with its own `BSJB` signature, sits at RVA 0x30a0 in `.rdata`. Three of the other four builds have the same second root; the 2022 build doesn't (its `.rdata` is 2,820 bytes and contains no `BSJB`).
+`0x61` is 97: 48 UTF-16 characters plus one trailing flag byte. That is how the `#US` heap of .NET metadata stores a string literal. The active metadata of this file is at RVA 0xb598, in a `.text` section at the end of the file. A second metadata root, with its own `BSJB` signature, sits at RVA 0x30a0 in `.rdata`:
+
+![Entropy across the 45,056-byte file 241aac14 with PE sections as bands; the original metadata root is marked in .rdata near the start and the active one in the second .text section at the end](/img/cerealloader-original-metadata/two-roots.svg "241aac14: two metadata roots, one file")
+
+The small marked region in `.rdata` is the original metadata, 0x62c bytes with a 100-byte `#US` heap. The large one at the end is what ConfuserEx wrote, and it has no `#US` heap at all. Three of the other four builds have the same second root; the 2022 build doesn't.
 
 | Build | Active metadata | Original metadata |
 |---|---|---|
@@ -120,31 +115,21 @@ internal static void ManagedEntryPoint()
 }
 ```
 
-Method and field names come from the metadata; local variable names are ILSpy's. The field name is the MSVC-mangled name the C++/CLI compiler gives the slot it creates when native code calls a managed function: `__m2mep@` plus the mangled name of `ManagedEntryPoint`, where `$$F` marks a function compiled to IL. At (1) the payload file's first 255 bytes become the XOR key for the rest.
+Method and field names come from the metadata; local variable names are ILSpy's. The field name is the MSVC-mangled name of the slot the C++/CLI compiler creates when native code calls a managed function. At (1) the payload file's first 255 bytes become the XOR key for the rest.
 
-In the obfuscated copy, the same method has a name made of invisible Unicode characters, and the path comes from the constants getter. The CLR reads only the metadata the CLI header points to, so the original copy changes nothing at run time. It is still in the file.
+In the obfuscated copy, the same method has an invisible Unicode name, and the path comes from the constants getter. The CLR reads only the metadata the CLI header points to, so the original copy changes nothing at run time.
 
-I think the cause is the writer, not the author. ConfuserEx writes through dnlib, and for a module with native code, dnlib keeps the original sections and adds the new metadata and IL in a section appended at the end. That fits all four files, where the active metadata sits in a second `.text` section after `.rsrc` or `.reloc`, but I haven't checked dnlib's source line by line.
+I think the cause is the writer, not the author. ConfuserEx writes through dnlib, which for a module with native code keeps the original sections and appends the new metadata and IL. That fits all four files, but I haven't checked dnlib's source line by line.
 
-The 2025 `version.dll` (`d3b6065e`) changed the source, not just the obfuscation:
+The 2025 `version.dll` (`d3b6065e`) changed the source, not just the obfuscation. Its original metadata has random method names, and its strings are encrypted in the source, each a byte array whose first 255 bytes are the XOR key for the rest. Its `#US` heap holds one string, a single space.
 
-- Its original metadata has random method names (`R4wJWN05jDd` for the entry point, `Vcr943J98DdyX4YZfrJY` for the XOR).
-- Its strings are already encrypted in the source: each is a byte array whose first 255 bytes are the XOR key for the rest, the same layout as the payload file.
-- Its `#US` heap holds one string, a single space.
-
-The two RC4 builds go one step further and keep a 256-byte RC4 key in the source. Their original methods are:
-
-- `Encrypt` (plain RC4)
-- two string helpers with random names
-- a random-named entry point
-- `import_functions`
-- in `6119d25a` only, P/Invoke declarations of `HeapAlloc` and `HeapFree`
+The two RC4 builds go one step further and keep a 256-byte RC4 key in the source. Their original methods are `Encrypt`, two string helpers and an entry point with random names, and `import_functions`.
 
 ## A decoy that is never called
 
-`import_functions` appears in the original metadata of both RC4 builds with a C++ `bool` parameter called `invoke`. If `invoke` is true, it calls 57 (in `6119d25a`) or 56 (in `41164eb0`) Win32 functions through `__unep@` pointers, with no arguments. `CryptGetUserKey`, `OpenEventLogA`, `GetRawInputDeviceInfoA` and the rest have nothing to do with loading an assembly.
+`import_functions` appears in the original metadata of both RC4 builds with a C++ `bool` parameter called `invoke`. If `invoke` is true, it calls 57 (in `6119d25a`) or 56 (in `41164eb0`) Win32 functions through `__unep@` pointers, with no arguments. `CryptGetUserKey`, `OpenEventLogA` and the rest have nothing to do with loading an assembly.
 
-Referencing them makes the linker put them in the import table, so the DLL's imports look like a normal program's: 59 imports in `6119d25a`, 74 in `41164eb0`. Every import that is not on the decoy list, apart from `_CorDllMain`, is one the native code uses. In `41164eb0` the native code also calls two functions that happen to be on the decoy list, `CreateFileA` and `OpenThread`.
+Referencing them makes the linker put them in the import table, so the DLL's imports look like a normal program's: 59 imports in `6119d25a`, 74 in `41164eb0`.
 
 ESET's Figure 8 shows the native caller in IDA's output as `LOBYTE(v1) = 0; sub_180003000(v1);`. The disassembly says the same:
 
@@ -160,13 +145,15 @@ ESET's Figure 8 shows the native caller in IDA's output as `LOBYTE(v1) = 0; sub_
 00224e:  call 0x180003000            ; import_functions(cl), slot token 0x06000001
 ```
 
-At (1), `ebx` is zero before the `cmove` and still zero after it, whatever `CreateThread` returned. So at (2) the argument is always false, and `import_functions` returns at once. `41164eb0` compiles to the same `cmove`/`setne` pair. The decoy exists only to be linked.
+At (1), `ebx` is zero before the `cmove` and after it, whatever `CreateThread` returned. So at (2) the argument is always false. `41164eb0` compiles to the same `cmove`/`setne` pair. The decoy exists only to be linked.
 
 ## The CcmEval build keeps its host alive
 
-`41164eb0` (`Microsoft.Ceres.dll`) has more native code than the others. Its `DllMain` starts a thread. That thread builds a 256-byte key and an 8-byte buffer on the stack with `mov dword ptr` instructions, RC4-decrypts the buffer and writes a zero over its last byte. The key is the same 256 bytes the managed code uses, starting `cb fd 80 a0`, and the plaintext is `CcmEval`.
+`41164eb0` (`Microsoft.Ceres.dll`) has more native code than the others:
 
-The next function gets the process's own image path with `QueryFullProcessImageNameA` and skips to the part after the last backslash. It compares that with `CcmEval` byte by byte, case-sensitively, as a prefix.
+![Start-up of 41164eb0: DllMain starts a thread that RC4-decrypts CcmEval and checks the host name; on a match it patches NtTerminateProcess, suspends the other threads, then calls ManagedEntryPoint, which loads the payload](/img/cerealloader-original-metadata/ccmeval.svg "41164eb0 from DllMain to the payload")
+
+The thread from `DllMain` builds a 256-byte key and an 8-byte buffer on the stack and RC4-decrypts the buffer to `CcmEval`. The key is the same 256 bytes the managed code uses. It then compares `CcmEval`, case-sensitively, with the start of its own image name from `QueryFullProcessImageNameA`.
 
 `CcmEval.exe` is the Configuration Manager client's health evaluation tool, which lives in `C:\Windows\CCM`, the folder that also holds this build's payload. ESET describes a build that does the same check against `Microsoft.Exchange.Search.Service`; this one does it for SCCM.
 
@@ -189,19 +176,13 @@ If the name matches, a second thread does this:
 
 The 14 bytes at the start of `NtTerminateProcess` become `jmp qword ptr [rip+0]` followed by the address of 0x24f0, and the code at (1) is a loop of `Sleep(10000)` that never ends. Any thread in the process that tries to end it, through `ExitProcess` or anything else that reaches `NtTerminateProcess`, goes to sleep instead.
 
-Then the thread takes a `CreateToolhelp32Snapshot` of all threads. For every thread of its own process except itself, it calls `OpenThread` with access 0x5A and `SuspendThread`. Only after that does it call the managed entry point through VTableFixup slot `0x06000006`.
+Then the thread suspends every other thread of its own process. Only after that does it call the managed entry point through VTableFixup slot `0x06000006`.
 
 I think the reason is the host: a health check runs, writes its results and exits, and a loader inside it would die with it. With the host's own threads frozen and its exit path parked, the payload keeps a live process under the `CcmEval.exe` name for as long as it needs. That is inference; I haven't seen the host load this file.
 
-The thread also writes progress markers. It opens `c:\WINDOWS\CCM\SystemTemp\68571` with `FILE_APPEND_DATA` and `OPEN_ALWAYS` and appends:
+The thread also appends progress markers to `c:\WINDOWS\CCM\SystemTemp\68571`: `1` when it starts, `3` for every thread it enumerates, `4` before each suspend. There is no `2`. The original metadata lists these literals as C++ string constants, so they are part of the source.
 
-- `1` when it starts
-- `3` for every thread it enumerates
-- `4` before each thread it tries to suspend
-
-There is no `2`. The original metadata lists these literals as C++ string constants (`??_C@_01HIHLOKLC@1@`, and the path as `??_C@_0CA@BCCDPILL@c?3?2WINDOWS?2CCM?2SystemTemp?268571@`), so they are part of the source. The log file's name is the first five characters of the payload's name, `685713b14b62`.
-
-The `Exchange.Data.Transport.ni.dll` build (`13fe1eb9`) has its own small native addition: before starting the thread, its `DllMain` calls `GetModuleFileNameW` on its own module and `LoadLibraryW` on the result. That adds a reference to itself, so the DLL stays mapped while its thread runs. ESET explains that the CLR uses a fake native image only for its entry point and then loads the real assembly. I think this is why a native-image build pins itself and the side-loaded proxies don't.
+The `Exchange.Data.Transport.ni.dll` build (`13fe1eb9`) has its own small native addition: its `DllMain` calls `LoadLibraryW` on its own path, so the DLL stays mapped while its thread runs. ESET explains that the CLR uses a fake native image only for its entry point. I think this is why a native-image build pins itself and the side-loaded proxies don't.
 
 ## Payload and log formats
 
@@ -211,7 +192,7 @@ The `Exchange.Data.Transport.ni.dll` build (`13fe1eb9`) has its own small native
 | XOR, 255-byte prefix | `241aac14`, `d3b6065e` | `key[255] ‖ data`, `plain[i] = data[i] ^ key[i % 255]` | `d3b6065e`: same layout, fresh random key each time |
 | RC4, key in loader | `6119d25a`, `41164eb0` | whole file RC4 | same RC4 key |
 
-The RC4 keys, all 256 bytes, start `65 56 67 95 53 4b 24 83` (`6119d25a`) and `cb fd 80 a0 1f e5 96 20` (`41164eb0`). The extractor prints them in full. With the XOR builds, a payload or log file carries its own key, so anyone holding the file can decrypt it.
+The RC4 keys, all 256 bytes, start `65 56 67 95 53 4b 24 83` (`6119d25a`) and `cb fd 80 a0 1f e5 96 20` (`41164eb0`). With the XOR builds, a payload or log file carries its own key.
 
 ## Dates, and two that aren't dates
 
@@ -223,13 +204,13 @@ The RC4 keys, all 256 bytes, start `65 56 67 95 53 4b 24 83` (`6119d25a`) and `c
 | `6119d25a` | (hash, 2015-02-15 if read as a date) | 14.37 |
 | `41164eb0` | (hash, 2024-08-21 if read as a date) | 14.50 |
 
-`13fe1eb9`'s timestamp matches the compilation date ESET gives for the earliest CerealLoader it found ("April 27th, 2022", uploaded to VirusTotal from Kazakhstan on May 11, 2022). The three dated builds have no debug directory.
+`13fe1eb9`'s timestamp matches the compilation date ESET gives for the earliest CerealLoader it found ("April 27th, 2022").
 
-My first draft called the last two timestamps forged, because both are older than their linkers. 14.37 came with Visual Studio 2022 version 17.7 in August 2023, and 14.50 is the toolset of [Visual Studio 2026, released in November 2025](https://learn.microsoft.com/cpp/overview/compiler-versions).
+My first draft called the last two timestamps forged, because both are older than their linkers: 14.37 came with Visual Studio 2022 version 17.7 in August 2023, and 14.50 is the toolset of [Visual Studio 2026, released in November 2025](https://learn.microsoft.com/cpp/overview/compiler-versions).
 
-The review of this post caught what I missed. Both files have debug directory entries of type 16 (`IMAGE_DEBUG_TYPE_REPRO`) and 19: they were linked with `/Brepro`, and in a reproducible build the TimeDateStamp field holds a hash of the output, not a time. Nobody forged anything.
+The review of this post caught what I missed. Both files have a debug entry of type 16 (`IMAGE_DEBUG_TYPE_REPRO`): they were linked with `/Brepro`, and in a reproducible build the TimeDateStamp field holds a hash of the output. Nobody forged anything.
 
-The linker version still dates `41164eb0`: it is from late 2025 or later (14.50 had release candidates shortly before its November release), no earlier than that. ESET dates the two compromises from November 28 and December 23, 2025. For `6119d25a` the linker only says August 2023 or later, which doesn't place it before or after the 2025 `version.dll`.
+The linker version still dates `41164eb0` to late 2025 or later. ESET dates the two compromises from November 28 and December 23, 2025.
 
 ## What I couldn't determine
 
@@ -238,21 +219,11 @@ The linker version still dates `41164eb0`: it is from late 2025 or later (14.50 
 - Where the two proxies were loaded from, and under what name. `SensApi.dll` next to `CcmEval.exe` in `C:\Windows\CCM` and `version.dll` next to the VMware Tools service are my guesses from the payload paths.
 - Why the 2022 build has no original metadata left.
 
-The 2022 build has five getter methods, and neither of its candidate data fields (128 and 448 bytes) decodes with the routine that works on `241aac14`, with any `ldc.i4` value in the module as the seed. Either the variant differs or I'm looking at the wrong field.
-
-By shape, the code using those constants is ConfuserEx's anti-debug runtime: `GetMethod`, `String.Concat` and `Invoke` on encrypted names, `Environment.FailFast`, and a watcher thread that sleeps 500 and 1,000 ms. That build doesn't need the blob for its path, which is a native wide-string literal in plain text.
+The 2022 build's constants don't decode with the routine that works on `241aac14`. By shape, the code using them is ConfuserEx's anti-debug runtime, and that build doesn't need them for its path, which is a native wide-string literal in plain text.
 
 ## The extractor
 
-[`families/cerealloader`](https://github.com/stateless-re/tools/tree/main/families/cerealloader) reads a build statically and prints:
-
-- its export-proxy target and VTableFixup slots
-- cipher and key
-- decrypted strings (payload path first) and native paths
-- the native RC4 string
-- what the original metadata contains
-
-It works on IL and machine code directly. It rebuilds byte arrays that ConfuserEx's flattening spread over dozens of switch cases, finds the ConfuserEx constants seed by trying every `ldc.i4` in the module, and rebuilds the stack frame that holds `CcmEval`.
+[`families/cerealloader`](https://github.com/stateless-re/tools/tree/main/families/cerealloader) prints a build's proxy target, VTableFixup slots, cipher and key, decrypted strings and native paths, and what the original metadata contains. It rebuilds byte arrays that ConfuserEx's flattening spread over dozens of switch cases, and finds the constants seed by trying every `ldc.i4` in the module.
 
 With `--payload FILE -o DIR` it decrypts a payload or log file with the build's scheme. I tested that part only on files I encrypted myself.
 
@@ -295,7 +266,7 @@ Host and file traits: a DLL with `COMIMAGE_FLAGS_NATIVE_ENTRYPOINT` whose export
 
 ## Ending
 
-ConfuserEx gave `ManagedEntryPoint` an invisible name and hid the VMware Tools path behind an LZMA blob, and the original path sat a few kilobytes away in the same file, in plain UTF-16. The author fixed that for the next build by encrypting strings in the source. For a defender, the second `BSJB` root is a better tell than any of the paths: a mixed-mode DLL that has been through dnlib can carry two metadata roots, and the one in `.rdata` is the one worth decompiling.
+ConfuserEx hid the VMware Tools path behind an LZMA blob, and the original path sat a few kilobytes away in plain UTF-16. The author fixed that in the next build by encrypting strings in the source. For a defender, the second `BSJB` root is a better tell than any of the paths: a mixed-mode DLL that has been through dnlib can carry two metadata roots, and the one in `.rdata` is the one worth decompiling.
 
 ## Credits and further reading
 
@@ -303,4 +274,3 @@ ConfuserEx gave `ManagedEntryPoint` an invisible name and hid the VMware Tools p
 - R136a1, who [identified CerealLoader as C++/CLI](https://x.com/TheEnergyStory/status/2120211882690933223) and published a [proof of concept](https://gist.github.com/TheEnergyStory/b4efad6170b06c5b3267c7e37927fa1d).
 - Microsoft, [MSVC compiler versions](https://learn.microsoft.com/cpp/overview/compiler-versions), for the toolset dates.
 - The samples: MalwareBazaar and Hybrid Analysis, linked in the Indicators table.
-- The extractor: [families/cerealloader](https://github.com/stateless-re/tools/tree/main/families/cerealloader).

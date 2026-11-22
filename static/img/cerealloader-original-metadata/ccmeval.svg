@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="fig" width="346" height="747" viewBox="0 0 346 747" style="max-width:346px">
+<rect x="0" y="0" width="346" height="747" rx="6" class="fig-bg" fill="#eef1f8"/>
+<defs>
+<marker id="ccmevalsvg-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="fig-head" fill="#4b5580"/></marker>
+<marker id="ccmevalsvg-ok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="fig-c2" fill="#2d6a1f"/></marker>
+<marker id="ccmevalsvg-no" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="fig-c6" fill="#a2245b"/></marker>
+</defs>
+<path d="M172.8,102.0 L172.8,156.0" class="fig-line" fill="none" stroke="#4b5580" stroke-width="1.5" marker-end="url(#ccmevalsvg-a)"/>
+<path d="M172.8,256.5 L172.8,310.5" class="fig-line" fill="none" stroke="#4b5580" stroke-width="1.5" marker-end="url(#ccmevalsvg-a)"/>
+<path d="M172.8,374.0 L172.8,428.0" class="fig-line" fill="none" stroke="#4b5580" stroke-width="1.5" marker-end="url(#ccmevalsvg-a)"/>
+<path d="M172.8,491.5 L172.8,545.5" class="fig-line" fill="none" stroke="#4b5580" stroke-width="1.5" marker-end="url(#ccmevalsvg-a)"/>
+<path d="M172.8,609.0 L172.8,663.0" class="fig-line" fill="none" stroke="#4b5580" stroke-width="1.5" marker-end="url(#ccmevalsvg-a)"/>
+<rect x="151.6" y="273.9" width="42.4" height="19.2" rx="3" class="fig-bg" fill="#eef1f8"/>
+<text x="172.8" y="287.7" font-size="12" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" text-anchor="middle" fill="#4b5580" class="fig-soft">match</text>
+<rect x="80.3" y="626.4" width="185.0" height="19.2" rx="3" class="fig-bg" fill="#eef1f8"/>
+<text x="172.8" y="640.2" font-size="12" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" text-anchor="middle" fill="#4b5580" class="fig-soft">Assembly.Load, first method</text>
+<rect x="72.5" y="20.0" width="200.5" height="82.0" rx="5" class="fig-box" fill="#fafbfd" stroke="#d3d9e8" stroke-width="1.25"/>
+<text x="172.8" y="46.8" font-size="15" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="middle" fill="#18224a">Microsoft.Ceres.dll</text>
+<text x="172.8" y="67.6" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">proxy for SensApi.dll</text>
+<text x="172.8" y="86.1" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">DllMain starts a thread</text>
+<rect x="68.8" y="156.0" width="208.0" height="100.5" rx="5" class="fig-box" fill="#fafbfd" stroke="#d3d9e8" stroke-width="1.25"/>
+<text x="172.8" y="182.8" font-size="15" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="middle" fill="#18224a">Host name check</text>
+<text x="172.8" y="203.6" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">RC4 -&gt; &quot;CcmEval&quot;</text>
+<text x="172.8" y="222.1" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">prefix of own image name</text>
+<text x="172.8" y="240.6" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">no match: thread returns</text>
+<rect x="55.7" y="310.5" width="234.1" height="63.5" rx="5" class="fig-hot" fill="#fafbfd" stroke="#1f4fc4" stroke-width="2"/>
+<text x="172.8" y="337.2" font-size="15" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="middle" fill="#18224a">Patch NtTerminateProcess</text>
+<text x="172.8" y="358.1" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">jmp to Sleep(10000) loop</text>
+<rect x="46.2" y="428.0" width="253.0" height="63.5" rx="5" class="fig-box" fill="#fafbfd" stroke="#d3d9e8" stroke-width="1.25"/>
+<text x="172.8" y="454.8" font-size="15" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="middle" fill="#18224a">Suspend other threads</text>
+<text x="172.8" y="475.6" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">OpenThread 0x5A, SuspendThread</text>
+<rect x="57.5" y="545.5" width="230.5" height="63.5" rx="5" class="fig-box" fill="#fafbfd" stroke="#d3d9e8" stroke-width="1.25"/>
+<text x="172.8" y="572.2" font-size="15" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="middle" fill="#18224a">ManagedEntryPoint</text>
+<text x="172.8" y="593.1" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">VTableFixup slot 0x06000006</text>
+<rect x="20.0" y="663.0" width="305.5" height="63.5" rx="5" class="fig-box" fill="#fafbfd" stroke="#d3d9e8" stroke-width="1.25"/>
+<text x="172.8" y="689.8" font-size="15" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="middle" fill="#18224a">Payload assembly</text>
+<text x="172.8" y="710.6" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">RC4 file in C:\Windows\CCM\SystemTemp</text>
+</svg>
