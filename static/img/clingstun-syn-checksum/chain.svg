@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="fig" width="571" height="530" viewBox="0 0 571 530" style="max-width:571px;min-width:480px">
+<rect x="0" y="0" width="571" height="530" rx="6" class="fig-bg" fill="#eef1f8"/>
+<defs>
+<marker id="chainsvg-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="fig-head" fill="#4b5580"/></marker>
+<marker id="chainsvg-ok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="fig-c2" fill="#2d6a1f"/></marker>
+<marker id="chainsvg-no" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="fig-c6" fill="#a2245b"/></marker>
+</defs>
+<path d="M346.4,102.0 L346.4,156.0" class="fig-line" fill="none" stroke="#4b5580" stroke-width="1.5" marker-end="url(#chainsvg-a)"/>
+<path d="M285.0,238.0 L204.2,292.0" class="fig-line" fill="none" stroke="#4b5580" stroke-width="1.5" marker-end="url(#chainsvg-a)"/>
+<path d="M204.2,374.0 L285.0,428.0" class="fig-line" fill="none" stroke="#4b5580" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#chainsvg-a)"/>
+<path d="M407.8,428.0 L550.1,333.0 L407.8,238.0" class="fig-line" fill="none" stroke="#4b5580" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#chainsvg-a)"/>
+<path d="M351.5,238.0 L358.2,292.0" class="fig-line" fill="none" stroke="#4b5580" stroke-width="1.5" marker-end="url(#chainsvg-a)"/>
+<rect x="296.1" y="119.4" width="100.7" height="19.2" rx="3" class="fig-bg" fill="#eef1f8"/>
+<text x="346.4" y="133.2" font-size="12" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" text-anchor="middle" fill="#4b5580" class="fig-soft">runs from /tmp</text>
+<rect x="204.0" y="255.4" width="81.3" height="19.2" rx="3" class="fig-bg" fill="#eef1f8"/>
+<text x="244.6" y="269.2" font-size="12" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" text-anchor="middle" fill="#4b5580" class="fig-soft">beacon, 5 s</text>
+<rect x="165.1" y="391.4" width="159.0" height="19.2" rx="3" class="fig-bg" fill="#eef1f8"/>
+<text x="244.6" y="405.2" font-size="12" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" text-anchor="middle" fill="#4b5580" class="fig-soft">registration (inferred)</text>
+<rect x="396.2" y="275.9" width="165.5" height="19.2" rx="3" class="fig-bg" fill="#eef1f8"/>
+<text x="479.0" y="289.7" font-size="12" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" text-anchor="middle" fill="#4b5580" class="fig-soft">command to a mapped port</text>
+<rect x="333.7" y="255.4" width="42.4" height="19.2" rx="3" class="fig-bg" fill="#eef1f8"/>
+<text x="354.9" y="269.2" font-size="12" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" text-anchor="middle" fill="#4b5580" class="fig-soft">cmd 2</text>
+<rect x="261.2" y="20.0" width="170.5" height="82.0" rx="5" class="fig-box" fill="#fafbfd" stroke="#d3d9e8" stroke-width="1.25"/>
+<text x="346.4" y="46.8" font-size="15" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="middle" fill="#18224a">Dropper wget.sh</text>
+<text x="346.4" y="67.6" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">argv[1] = group tag</text>
+<text x="346.4" y="86.1" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">e.g. selfrep.kguard</text>
+<rect x="257.4" y="156.0" width="178.0" height="82.0" rx="5" class="fig-hot" fill="#fafbfd" stroke="#1f4fc4" stroke-width="2"/>
+<text x="346.4" y="182.8" font-size="15" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="middle" fill="#18224a">ClingSTUN bot</text>
+<text x="346.4" y="203.6" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">13 UDP sockets</text>
+<text x="346.4" y="222.1" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">lock 127.0.0.1:33957</text>
+<rect x="20.0" y="292.0" width="245.5" height="82.0" rx="5" class="fig-box" fill="#fafbfd" stroke="#d3d9e8" stroke-width="1.25"/>
+<text x="142.8" y="318.8" font-size="15" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="middle" fill="#18224a">Public STUN servers</text>
+<text x="142.8" y="339.6" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">13 IPs, :3478 and :19302</text>
+<text x="142.8" y="358.1" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">Binding Request, txid 00 x 12</text>
+<rect x="204.9" y="428.0" width="283.0" height="82.0" rx="5" class="fig-box" fill="#fafbfd" stroke="#d3d9e8" stroke-width="1.25"/>
+<text x="346.4" y="454.8" font-size="15" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="middle" fill="#18224a">Operator</text>
+<text x="346.4" y="475.6" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">sees the beacon through one server</text>
+<text x="346.4" y="494.1" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">sends 20-byte datagrams</text>
+<rect x="293.5" y="292.0" width="139.6" height="82.0" rx="5" class="fig-box" fill="#fafbfd" stroke="#d3d9e8" stroke-width="1.25"/>
+<text x="363.3" y="318.8" font-size="15" font-family="'Sofia Sans', 'Helvetica Neue', Arial, sans-serif" font-weight="600" text-anchor="middle" fill="#18224a">Scanner child</text>
+<text x="363.3" y="339.6" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">SYN sport 9999</text>
+<text x="363.3" y="358.1" font-size="12.5" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" text-anchor="middle" fill="#4b5580" class="fig-soft mono">bad checksum</text>
+</svg>
